@@ -33,51 +33,15 @@ using namespace std;
 
 using namespace optframe;
 
-void getCombinations(vector<vector<double> >& values, vector<int>& index, vector<vector<double> >& combinations)
+struct MIPStartSolution
 {
-	bool exitWhile = true;
-	do
+	vector<double> objValues;
+	string filename;
+	MIPStartSolution(vector<double> _obj, string _filename) :
+			objValues(_obj), filename(_filename)
 	{
-		int nObj = values.size();
-
-		for (int i = 0; i < values[0].size(); i++)
-		{
-			vector<double> coef(nObj);
-			for (int o = 0; o < nObj; o++)
-			{
-				coef[o] = values[o][index[o]];
-			}
-			combinations.push_back(coef);
-			index[0]++;
-		}
-		index[0] = 0;
-
-//		cout << combinations << endl;
-//		cout << index << endl;
-//		getchar();
-
-		for (int o = 1; o < nObj; o++)
-		{
-
-			if (index[o] < (values[o].size() - 1))
-			{
-				index[o]++;
-				o=nObj;
-				break;
-			}
-			else
-			{
-				index[o] = 0;
-
-				if (o == (nObj - 1))
-					exitWhile = false;
-			}
-		}
-
-
-	} while (exitWhile);
-
-}
+	}
+};
 
 char* execCommand(const char* command)
 {
@@ -116,21 +80,6 @@ char* execCommand(const char* command)
 
 	return result;
 }
-
-struct MIPStartSolution
-{
-	vector<vector<vector<bool> > > pevsDischarge;
-	vector<vector<vector<bool> > > pevsCharge;
-
-	double objCost;
-	double objWearTear;
-	double objMaxPeakLoad;
-
-	MIPStartSolution(vector<vector<vector<bool> > > _pevsDischarge, vector<vector<vector<bool> > > _pevsCharge, double _objCost, double _objMaxPeakLoad, double _objWearTear) :
-			pevsDischarge(_pevsDischarge), pevsCharge(_pevsCharge), objCost(_objCost), objMaxPeakLoad(_objMaxPeakLoad), objWearTear(_objWearTear)
-	{
-	}
-};
 
 class cplexMOPoolSearch
 {
@@ -306,7 +255,7 @@ public:
 //		return variablesNumber;
 //	}
 
-	void exec(string filename, bool mipStart, int nIntervalsCoef, int tLim, int nOptObj, int nCriteria)
+	void exec(string filename, bool mipStart, int nIntervalsCoef, vector<vector<double> > vMILPCoefs, int tLim, int nOptObj, int nCriteria)
 	{
 
 		cout << "Exec cplex MO Matheuristic Pool Sarch." << endl;
@@ -314,224 +263,218 @@ public:
 		cout << "Number of objectives functions: " << nOptObj << endl;
 		UnionNDSets2 uND(nOptObj);
 
-		vector<string> vInputModel;
-		vInputModel.push_back(filename.c_str());
-
-		vector<int> vNMaxOpt;
-		vNMaxOpt.push_back(nIntervalsCoef);
-
-		vector<int> vTLim;
-		vTLim.push_back(tLim);
-
-		vector<vector<double> > vPossibleCoefs(nOptObj);
-		vPossibleCoefs[0] = {0.001, 0.5 ,1}; //
-		vPossibleCoefs[1] = {0, 0.5 ,1}; //
-		vPossibleCoefs[2] = {0, 10 ,100}; //
-		vPossibleCoefs[3] = {0, 10 ,100}; //
-
-//		int nExpBatches = vNMaxOpt[nM];
-
-//		for (int n = 0; n <= nExpBatches; n++)
-//		{
-//			double coef = n * 1.00 / nExpBatches * 1.00;
-//			for (int obj = 0; obj < nOptObj; obj++)
-//				vPossibleCoefs[obj].push_back(coef);
-//		}
-
-
-		int nMILPProblems = 1;
-
-		for (int o = 0; o < nOptObj; o++)
-			nMILPProblems = nMILPProblems*vPossibleCoefs[o].size();
+		int nMILPProblems = vMILPCoefs.size();
 		cout << "nMILPProblems = " << nMILPProblems << endl;
 
-		for (int iM = 0; iM < vInputModel.size(); iM++)
-			for (int nM = 0; nM < vNMaxOpt.size(); nM++)
-				for (int tL = 0; tL < vTLim.size(); tL++)
-				{
+		vector<vector<double> > Pop;
 
+		IloEnv env;
+		try
+		{
+			Timer tTotal;
+			IloCplex cplex(env);
+			IloModel model(env);
+			IloObjective obj;
+			IloNumVarArray var(env);
+			IloRangeArray rng(env);
 
+			string modelLPAdress = "./LP/" + filename + ".lp";
+			cout << "solving: " << modelLPAdress << endl;
 
-					vector<vector<double> > vMILPCoefs;
-					vector<int> vIndex(nOptObj, 0);
-							getCombinations(vPossibleCoefs, vIndex, vMILPCoefs);
-//					cout << vMILPCoefs << endl;
-//					getchar();
-					if(vMILPCoefs.size()!=nMILPProblems)
-					{
-						cout<<"Error on getCombinations! Different sizes of vMILPCoefs and nMILPProblems";
-						exit(1);
-					}
+			cplex.importModel(model, modelLPAdress.c_str(), obj, var, rng);
 
-
-
-					vector<vector<double> > Pop;
-
-					IloEnv env;
-					try
-					{
-						Timer tTotal;
-						IloCplex cplex(env);
-						IloModel model(env);
-						IloObjective obj;
-						IloNumVarArray var(env);
-						IloRangeArray rng(env);
-
-						string modelLPAdress = "./LP/" + vInputModel[iM] + ".lp";
-						cout << "solving: " << modelLPAdress << endl;
-
-						cplex.importModel(model, modelLPAdress.c_str(), obj, var, rng);
-
-						// ========= Finding LP number of variable ==============
+			// ========= Finding LP number of variable ==============
 //						vector<int> numberVariables = findLPNumberVariables(var);
 
 //						getchar();
+			int mipCounter = 0;
+			vector<MIPStartSolution> poolMIPStart;
+			for (int milpProblems = 0; milpProblems < nMILPProblems; milpProblems++)
+			{
+				cout << "=====================================\n";
+				cout << "Creating MILP model " << milpProblems << "/" << nMILPProblems << " with: \n";
+				for (int o = 0; o < nOptObj; o++)
+					cout << "lambda(" << o + 1 << "): " << vMILPCoefs[milpProblems][o] << "\t";
+				cout << "\n";
 
-						for (int milpProblems = 0; milpProblems < nMILPProblems; milpProblems++)
-						{
+				for (int o = 0; o < nOptObj; o++)
+					obj.setLinearCoef(var[o], vMILPCoefs[milpProblems][o]);
 
-							cout << "=====================================\n";
-							cout << "Creating MILP model with: \n";
-							for (int o = 0; o < nOptObj; o++)
-								cout << "coef" << o + 1 << ":" << vMILPCoefs[milpProblems][o] << "\t";
-
-							//cout << obj << endl;
-							//	getchar();
-							for (int o = 0; o < nOptObj; o++)
-								obj.setLinearCoef(var[o], vMILPCoefs[milpProblems][o]);
-
-							cout << obj << endl;
+				cout << obj << endl;
 //							getchar();
 
-							cplex.extract(model);
-							cplex.setParam(cplex.TiLim, vTLim[tL]);
+				cplex.extract(model);
+				cplex.setParam(cplex.TiLim, tLim);
 
-							IloBool solveBool = cplex.solve();
+				cplex.readMIPStarts("tempMIPStart/mst44.mst");
+				// =====================================================
+				//Read the file with the best MIP start
+				if (mipCounter > 0)
+				{
 
-							int nCplexPoolOfSolutions = cplex.getSolnPoolNsolns();
+					int totalNMIPStartSolutions = poolMIPStart.size();
+					cout << "Pool of MIP start solution has: " << totalNMIPStartSolutions << " possibilities" << endl;
 
-							if (!solveBool)
-							{
+					double bestFO = 100000000000000;
+					int bestMIPStartIndex = -1;
+					//Selecting best MIP start for the current weights
+					for (int mipS = 0; mipS < totalNMIPStartSolutions; mipS++)
+					{
+						double currentMILPObj = 0;
+						for (int o = 0; o < nOptObj; o++)
+							currentMILPObj += vMILPCoefs[milpProblems][o] * poolMIPStart[mipS].objValues[o];
+
+						if (currentMILPObj < bestFO)
+						{
+							bestFO = currentMILPObj;
+							bestMIPStartIndex = mipS;
+						}
+					}
+					cout << "best MIPStart solution is: " << bestFO << "\t index:" << bestMIPStartIndex << endl << endl;
+					cplex.readMIPStart(poolMIPStart[bestMIPStartIndex].filename.c_str());
+				}
+				// =====================================================
+
+				IloBool solveBool = cplex.solve();
+
+				int nCplexPoolOfSolutions = cplex.getSolnPoolNsolns();
+
+				if (!solveBool)
+				{
 //								env.error() << "Failed to optimize LP" << endl;
 //								throw(-1);
-								cout << "=====================================\n";
-								cout << "Any solution was found! The following parameters were used: \n";
-								for (int o = 0; o < nOptObj; o++)
-									cout << "coef" << o + 1 << ":" << vMILPCoefs[o][milpProblems];
-								cout << "\t cplex.TiLim: " << vTLim[tL] << "\n";
-								cout << "=====================================\n";
-							}
-							else
-							{
-								cout << "=====================================\n";
-								cout << "Problem SOLVED!! \n";
-								cout << nCplexPoolOfSolutions << " solutions were obtained. \n";
-								cout << "=====================================\n\n";
-							}
+					cout << "=====================================\n";
+					cout << "Any solution was found! The following parameters were used: \n";
+					for (int o = 0; o < nOptObj; o++)
+						cout << "lambda(" << o + 1 << "): " << vMILPCoefs[milpProblems][o] << "\t";
+					cout << "\n";
+					cout << "\t cplex.TiLim: " << tLim << "\n";
+					cout << "=====================================\n";
+				}
+				else
+				{
+					cout << "=====================================\n";
+					cout << "Problem SOLVED!! \n";
+					cout << nCplexPoolOfSolutions << " solutions were obtained. \n";
+					cout << "=====================================\n\n";
+				}
 
-							IloNumArray vals(env);
+				IloNumArray vals(env);
 
-							if (nCplexPoolOfSolutions > 0)
-								for (int nS = 0; nS < nCplexPoolOfSolutions; nS++)
-								{
-									cout << "=====================================\n";
-									cout << "Extracting solution: " << nS + 1 << "/" << nCplexPoolOfSolutions << endl;
+				if (nCplexPoolOfSolutions > 0)
+					for (int nS = 0; nS < nCplexPoolOfSolutions; nS++)
+					{
+						cout << "=====================================\n";
+						cout << "Extracting solution: " << nS + 1 << "/" << nCplexPoolOfSolutions << endl;
 
-									cplex.getValues(vals, var, nS);
-									//cout<<cplex.getRangeFilterLowerBound(1);
+						cplex.getValues(vals, var, nS);
+						//cout<<cplex.getRangeFilterLowerBound(1);
 //cout<<cplex.getRangeFilterLowerBound(0);
 //									cout << cplex.getBestObjValue() << endl;
 //									cout<<cplex.getObjValue(nS)<<endl; //gets solution obj
 //									cout<<cplex.getStatus()<<endl;
 
-									//(bestinteger - bestobjective) / (1e-10 + |bestobjective|)
+//(bestinteger - bestobjective) / (1e-10 + |bestobjective|)
 
 //									getchar();
 
 //											cout << var << endl;
 //											getchar();
-									vector<double> finalOF;
-									for (int o = 0; o < nOptObj; o++)
-									{
-										finalOF.push_back(vals[o]);
-										cout << "\tobj" << o + 1 << ":" << finalOF[o];
-									}
-
-//									cout << "var[0] = " << var[0] << endl;
-//									cout << "var[1] = " << var[1] << endl;
-//									getchar();
-
-//									vector<double> newFo = readDifferentScenarios(energySelling, energyBuying, energyCharging, energyDischarging, objCost, foMaxPeakLoad, totalChargingDischargingPayed, exScenario, nDiscrete, nPEV);
-
-									Pop.push_back(finalOF);
-
-									cout << "Solution: " << nS + 1 << "/" << nCplexPoolOfSolutions << " has been extracted with success and added to the population" << endl;
-									cout << "=====================================\n";
-
-								}
-
-							cout << "=====================================\n\n";
-
-						}
-
-						cout << "total time spent: " << tTotal.now() << endl;
-						cout << "Obtained population has size :" << Pop.size() << endl;
-
-						if (Pop.size() > 0)
+						vector<double> finalOF;
+						for (int o = 0; o < nOptObj; o++)
 						{
-							cout << "Printing obtained population of solutions with size :" << Pop.size() << endl;
-							cout << Pop << endl;
-							vector<vector<double> > paretoSET = uND.createParetoSet(Pop);
-							double nParetoInd = paretoSET.size();
-
-							cout << "Printing Pareto Front of size:" << paretoSET.size() << endl;
-							cout << paretoSET << endl;
-							vector<vector<vector<double> > > vParetoSet;
-							vParetoSet.push_back(paretoSET);
-
-							stringstream ss;
-							ss << "./ResultadosFronteiras/" << vInputModel[iM] << "NExec" << pow(vNMaxOpt[nM], 3) << "TLim" << vTLim[tL]; // << "-bestMIPStart";
-
-							FILE* fFronteiraPareto = fopen(ss.str().c_str(), "w");
-							for (int nS = 0; nS < nParetoInd; nS++)
-							{
-								for (int nE = 0; nE < nOptObj; nE++)
-								{
-									fprintf(fFronteiraPareto, "%.5f \t ", paretoSET[nS][nE]);
-								}
-								fprintf(fFronteiraPareto, "\n");
-							}
-							fprintf(fFronteiraPareto, "%.5f \n ", tTotal.now());
-
-							fclose(fFronteiraPareto);
+							finalOF.push_back(vals[o]);
+							cout << "obj(" << o + 1 << "): " << finalOF[o] << "\t";
 						}
-						else
+//						cout << "obj(" << 7 << "): " << finalOF[7] << "\t"; //print excess auxiliary variable
+						cout << "\n";
+
+						Pop.push_back(finalOF);
+
+						//==============================================
+						// Exaustive writing of MST solutions in a file
+						if (mipStart)
 						{
-							cout << "Any solution was obtained among the: " << nMILPProblems << "  MILP optimizations with different weighted-sum!" << endl;
-						}
+							cout << "Writing MST solution...." << endl;
+							stringstream mstFilename;
+							mstFilename << "./tempMIPStart/mst" << mipCounter << ".mst";
+//							cplex.writeMIPStarts(mstFilename.str().c_str(), nS, nCplexPoolOfSolutions);
+							cplex.writeMIPStart(mstFilename.str().c_str(), nS);
+							MIPStartSolution mipStartSol(finalOF, mstFilename.str());
+							poolMIPStart.push_back(mipStartSol);
+							mipCounter++;
+							cout << "MST Saved in file with sucess!" << endl;
 
-						//cout << vals[vals.getSize()] << endl;
-						try
-						{ // basis may not exist
-							IloCplex::BasisStatusArray cstat(env);
-							cplex.getBasisStatuses(cstat, var);
-							env.out() << "Basis statuses  = " << cstat << endl;
-						} catch (...)
-						{
+							//(WriteLevel, CPX_PARAM_WRITELEVEL) //0 to 4
+							//CPX_WRITELEVEL_ALLVARS, CPX_WRITELEVEL_DISCRETEVARS, CPX_WRITELEVEL_NONZEROVARS,CPX_WRITELEVEL_NONZERODISCRETEVARS
 						}
+						//==============================================
+						cout << "Solution: " << nS + 1 << "/" << nCplexPoolOfSolutions << " has been extracted with success and added to the population" << endl;
+						cout << "=====================================\n";
 
-						//env.out() << "Maximum bound violation = " << cplex.getQuality(IloCplex::MaxPrimalInfeas) << endl;
-					} catch (IloException& e)
-					{
-						cerr << "Concert exception caught: " << e << endl;
-					} catch (...)
-					{
-						cerr << "Unknown exception caught" << endl;
 					}
 
-					env.end();
-				}
+				cout << "=====================================\n\n";
 
+			}
+
+			cout << "total time spent: " << tTotal.now() << endl;
+			cout << "Obtained population has size :" << Pop.size() << endl;
+
+			if (Pop.size() > 0)
+			{
+				cout << "Printing obtained population of solutions with size :" << Pop.size() << endl;
+				cout << Pop << endl;
+				vector<vector<double> > paretoSET = uND.createParetoSet(Pop);
+				double nParetoInd = paretoSET.size();
+
+				cout << "Printing Pareto Front of size:" << paretoSET.size() << endl;
+				cout << paretoSET << endl;
+				vector<vector<vector<double> > > vParetoSet;
+				vParetoSet.push_back(paretoSET);
+
+				stringstream ss;
+				ss << "./ResultadosFronteiras/" << filename << "NExec" << nMILPProblems << "TLim" << tLim; // << "-bestMIPStart";
+				cout << "Writing PF at file " << ss.str() << "..." << endl;
+				FILE* fFronteiraPareto = fopen(ss.str().c_str(), "w");
+				for (int nS = 0; nS < nParetoInd; nS++)
+				{
+					for (int nE = 0; nE < nOptObj; nE++)
+					{
+						fprintf(fFronteiraPareto, "%.5f \t ", paretoSET[nS][nE]);
+					}
+					fprintf(fFronteiraPareto, "\n");
+				}
+				fprintf(fFronteiraPareto, "%.5f \n ", tTotal.now());
+
+				fclose(fFronteiraPareto);
+			}
+			else
+			{
+				cout << "Any solution was obtained among the: " << nMILPProblems << "  MILP optimizations with different weighted-sum!" << endl;
+			}
+
+			//cout << vals[vals.getSize()] << endl;
+			try
+			{ // basis may not exist
+				IloCplex::BasisStatusArray cstat(env);
+				cplex.getBasisStatuses(cstat, var);
+				env.out() << "Basis statuses  = " << cstat << endl;
+			} catch (...)
+			{
+			}
+
+			//env.out() << "Maximum bound violation = " << cplex.getQuality(IloCplex::MaxPrimalInfeas) << endl;
+		} catch (IloException& e)
+		{
+			cerr << "Concert exception caught: " << e << endl;
+		} catch (...)
+		{
+			cerr << "Unknown exception caught" << endl;
+		}
+
+		env.end();
+		cout << "cplex MO Pool Search finished com sucesso!" << endl;
 	}
 
 // 2

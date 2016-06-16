@@ -12,9 +12,53 @@
 using namespace std;
 using namespace optframe;
 
+void getCombinations(vector<vector<double> >& values, vector<vector<double> >& combinations)
+{
+	vector<int> vIndex(values.size(), 0);
+	bool exitWhile = true;
+	do
+	{
+		int nObj = values.size();
+
+		for (int i = 0; i < values[0].size(); i++)
+		{
+			vector<double> coef(nObj);
+			for (int o = 0; o < nObj; o++)
+				coef[o] = values[o][vIndex[o]];
+
+			combinations.push_back(coef);
+			vIndex[0]++;
+		}
+		vIndex[0] = 0;
+
+//		cout << combinations << endl;
+//		cout << index << endl;
+//		getchar();
+
+		for (int o = 1; o < nObj; o++)
+		{
+
+			if (vIndex[o] < (values[o].size() - 1))
+			{
+				vIndex[o]++;
+				o = nObj;
+				break;
+			}
+			else
+			{
+				vIndex[o] = 0;
+
+				if (o == (nObj - 1))
+					exitWhile = false;
+			}
+		}
+
+	} while (exitWhile);
+
+}
+
 int main(int argc, char **argv)
 {
-
 
 	int nOfArguments = 4;
 	if (argc != (1 + nOfArguments))
@@ -49,7 +93,42 @@ int main(int argc, char **argv)
 	//	mModel.analyzeParetoFronts("./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10-bestMIPStart", 68, "./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10", 44);
 	//	getchar();
 	cplexMOPoolSearch mModel(rg);
-	mModel.exec(filename, mipStart, nIntervalsCoef, tLim, 4, 0);
+	int nOptObj = 7;
+	vector<vector<double> > vPossibleCoefs(nOptObj);
+//	vPossibleCoefs[0] =
+//	{	0.001, 1}; //
+//	vPossibleCoefs[1] =
+//	{	0.001, 1}; //
+//	vPossibleCoefs[2] =
+//	{	0.001, 1};
+//	vPossibleCoefs[3] =
+//	{	0.001, 1}; //
+//	vPossibleCoefs[4] =
+//	{	0.001, 1}; //
+//	vPossibleCoefs[5] =
+//	{	0.001, 1}; //
+//	vPossibleCoefs[6] =
+//	{	0.001, 1}; //
+	vPossibleCoefs[0] =
+	{	1, 10};
+	vPossibleCoefs[1] =
+	{	0.1,1};
+	vPossibleCoefs[2] =
+	{	1, 10};
+	vPossibleCoefs[3] =
+	{	1};
+	vPossibleCoefs[4] =
+	{	0.01, 0.1};
+	vPossibleCoefs[5] =
+	{	1, 10};
+	vPossibleCoefs[6] =
+	{	1, 10};
 
-	cout << "Ended com sucesso!" << endl;
+	vector<vector<double> > vMILPCoefs;
+	getCombinations(vPossibleCoefs, vMILPCoefs);
+	cout << vMILPCoefs << endl;
+
+	mModel.exec(filename, mipStart, nIntervalsCoef, vMILPCoefs, tLim, nOptObj, 0);
+
+	cout << "Main finished com sucesso!" << endl;
 }
