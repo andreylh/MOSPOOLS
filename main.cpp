@@ -12,7 +12,7 @@
 using namespace std;
 using namespace optframe;
 
-void getCombinations(vector<vector<double> >& values, vector<vector<double> >& combinations)
+void fillVectorWithAllCombinations(vector<vector<double> >& values, vector<vector<double> >& combinations)
 {
 	vector<int> vIndex(values.size(), 0);
 	bool exitWhile = true;
@@ -59,7 +59,6 @@ void getCombinations(vector<vector<double> >& values, vector<vector<double> >& c
 
 int main(int argc, char **argv)
 {
-
 	int nOfArguments = 4;
 	if (argc != (1 + nOfArguments))
 	{
@@ -73,17 +72,18 @@ int main(int argc, char **argv)
 	}
 	const char* instancia = argv[1];
 	bool mipStart = atoi(argv[2]);
-	int nIntervalsCoef = atoi(argv[3]);
-	int tLim = atoi(argv[4]);
+	int tLim = atoi(argv[3]);
+	int nIntervalsCoef = atoi(argv[4]);
 	string filename = instancia;
 	cout << "filename = " << filename << endl;
 	cout << "mipStart = " << mipStart << endl;
+	cout << "tLim = " << tLim << endl;
+	cout << "nIntervalsCoef(optinal) = " << nIntervalsCoef << endl;
 
 	RandGenMersenneTwister rg;
-	//long  1412730737
-	long seed = time(NULL); //CalibrationMode
+	long seed = time(NULL);
 	seed = 2;
-	cout << "Seed = " << seed << endl;
+	cout << "seed = " << seed << endl;
 	srand(seed);
 	rg.setSeed(seed);
 
@@ -92,23 +92,14 @@ int main(int argc, char **argv)
 
 	//	mModel.analyzeParetoFronts("./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10-bestMIPStart", 68, "./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10", 44);
 	//	getchar();
+
 	cplexMOPoolSearch mModel(rg);
 	int nOptObj = 7;
+	int nCriteria = 0;
+
+	//================================
+	//Generating objective functions weights with pre-defined vector of lambda values
 	vector<vector<double> > vPossibleCoefs(nOptObj);
-//	vPossibleCoefs[0] =
-//	{	0.001, 1}; //
-//	vPossibleCoefs[1] =
-//	{	0.001, 1}; //
-//	vPossibleCoefs[2] =
-//	{	0.001, 1};
-//	vPossibleCoefs[3] =
-//	{	0.001, 1}; //
-//	vPossibleCoefs[4] =
-//	{	0.001, 1}; //
-//	vPossibleCoefs[5] =
-//	{	0.001, 1}; //
-//	vPossibleCoefs[6] =
-//	{	0.001, 1}; //
 	vPossibleCoefs[0] =
 	{	1, 10};
 	vPossibleCoefs[1] =
@@ -123,12 +114,14 @@ int main(int argc, char **argv)
 	{	1, 10};
 	vPossibleCoefs[6] =
 	{	1, 10};
+	//================================
 
 	vector<vector<double> > vMILPCoefs;
-	getCombinations(vPossibleCoefs, vMILPCoefs);
+	fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
 	cout << vMILPCoefs << endl;
+	int maxTriesWithTLimUntilFirstFeasible = 10; //max number of times it will optimize with tLim until finding the First Feasible
 
-	mModel.exec(filename, mipStart, nIntervalsCoef, vMILPCoefs, tLim, nOptObj, 0);
+	mModel.exec(filename, mipStart, vMILPCoefs, tLim, nOptObj, nCriteria, maxTriesWithTLimUntilFirstFeasible);
 
 	cout << "Main finished com sucesso!" << endl;
 }
