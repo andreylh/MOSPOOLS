@@ -20,7 +20,7 @@
 #include <iostream>
 #include <fstream>      // std::ifstream
 #include <sstream>
-#include "OptFrame/Util/MultiObjectiveMetrics2.hpp"
+#include "OptFrame/MultiObjSearch.hpp"
 #include "OptFrame/RandGen.hpp"
 #include "OptFrame/Timer.hpp"
 #include "OptFrame/Util/printable.h"
@@ -47,9 +47,10 @@ class cplexMOPoolSearch
 
 public:
 	RandGen& rg;
+		MOMETRICS<int> moMetrics;
 
-	cplexMOPoolSearch(RandGen& _rg) :
-			rg(_rg)
+	cplexMOPoolSearch(RandGen& _rg, MOMETRICS<int> _moMetrics) :
+			rg(_rg), moMetrics(_moMetrics)
 
 	{
 
@@ -60,13 +61,14 @@ public:
 
 	}
 
-	void exec(string filename, bool mipStart, vector<vector<double> > vMILPCoefs, int tLim, int nOptObj, int nCriteria, int maxTriesWithTLimUntilFirstFeasible)
+	vector<vector<double> > exec(string filename, bool mipStart, vector<vector<double> > vMILPCoefs, int tLim, int nOptObj, int nCriteria, int maxTriesWithTLimUntilFirstFeasible)
 	{
-
-		cout << "Exec cplex MO Matheuristic Pool Sarch." << endl;
+		cout << "===================================== " << endl;
+		cout << "Exec CPLEX MO Pool Search Matheuristic!" << endl;
 
 		cout << "Number of objectives functions: " << nOptObj << endl;
-		UnionNDSets2 uND(nOptObj);
+
+		vector<vector<double> > paretoSET;
 
 		int nMILPProblems = vMILPCoefs.size();
 		cout << "nMILPProblems = " << nMILPProblems << endl;
@@ -158,7 +160,7 @@ public:
 					int nTries = 1;
 					while ((nTries < maxTriesWithTLimUntilFirstFeasible) && nCplexPoolOfSolutions == 0)
 					{
-						cout << "\n Any feasible solution was in " << nTries <<"/"<< maxTriesWithTLimUntilFirstFeasible << " tries! \n \n";
+						cout << "\n Any feasible solution was in " << nTries << "/" << maxTriesWithTLimUntilFirstFeasible << " tries! \n \n";
 						solveBool = cplex.solve();
 						nCplexPoolOfSolutions = cplex.getSolnPoolNsolns();
 						nTries++;
@@ -249,13 +251,25 @@ public:
 			{
 				cout << "Printing obtained population of solutions with size: " << nObtainedSolutions << endl;
 				cout << popObjValues << endl;
-				vector<vector<double> > paretoSET = uND.createParetoSet(popObjValues);
+				paretoSET = moMetrics.createParetoSet(popObjValues);
 				double nParetoInd = paretoSET.size();
 
 				cout << "Printing Pareto Front of size: " << paretoSET.size() << endl;
 				cout << paretoSET << endl;
 				vector<vector<vector<double> > > vParetoSet;
 				vParetoSet.push_back(paretoSET);
+
+				//=================================
+				//remove or generalize for future applications
+				vector<double> referencePointsHV =
+				{ 100, 500, 30, 150, 1500, 31, 30 };
+				vector<double> utopicSol =
+				{ 0, 1, 1, 10, 0, 1, 2 };
+				double hv = moMetrics.hipervolumeWithExecRequested(paretoSET, referencePointsHV, true);
+				double delta = moMetrics.deltaMetric(paretoSET, utopicSol, true);
+				cout << "hv: " << hv << endl;
+				cout << "delta: " << delta << endl;
+				//=========================================
 
 				stringstream ss;
 				ss << "./ResultadosFronteiras/" << filename << "NExec" << nMILPProblems << "TLim" << tLim; // << "-bestMIPStart";
@@ -265,13 +279,16 @@ public:
 				{
 					for (int nE = 0; nE < nOptObj; nE++)
 					{
-						fprintf(fFronteiraPareto, "%.5f \t ", paretoSET[nS][nE]);
+						fprintf(fFronteiraPareto, "%.5f\t", paretoSET[nS][nE]);
 					}
 					fprintf(fFronteiraPareto, "\n");
 				}
-				fprintf(fFronteiraPareto, "%.5f \n ", tTotal.now());
-
+				fprintf(fFronteiraPareto, "%.5f \n", tTotal.now());
+				fprintf(fFronteiraPareto, "hv: %.5f \n", hv);
+				fprintf(fFronteiraPareto, "delta: %.5f \n", delta);
 				fclose(fFronteiraPareto);
+				cout << "File wrote with success!" << endl;
+
 			}
 			else
 			{
@@ -283,7 +300,7 @@ public:
 			{ // basis may not exist
 				IloCplex::BasisStatusArray cstat(env);
 				cplex.getBasisStatuses(cstat, var);
-				env.out() << "Basis statuses  = " << cstat << endl;
+				env.out() << "Basis statuses  = " << cstat << "\n";
 			} catch (...)
 			{
 			}
@@ -299,6 +316,8 @@ public:
 
 		env.end();
 		cout << "MO Pool Search finished com sucesso!" << endl;
+		cout << "===================================== \n" << endl;
+		return paretoSET;
 	}
 
 // 2

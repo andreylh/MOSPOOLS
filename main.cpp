@@ -59,22 +59,28 @@ void fillVectorWithAllCombinations(vector<vector<double> >& values, vector<vecto
 
 int main(int argc, char **argv)
 {
-	int nOfArguments = 4;
+	int nOfArguments = 5;
+
 	if (argc != (1 + nOfArguments))
 	{
 		cout << "Parametros incorretos!" << endl;
-		cout << "Os parametros esperados sao: \n"
-				"1 - instancia \n"
-				"2 - MIP START\n"
-				"3 - NInterval\n"
-				"4 - time limit\n" << endl;
+		cout << "At least two parameters should be given : \n"
+				"1 - instance \n"
+				"3 - int - solver time limit \n"
+				"2 - bool - Mip start (optional) - Default false \n"
+				"4 - int - maxTriesForFirstFeasible (optional) - Default 1 \n"
+				"5 - int NIntervals (optional) - Default 1 - other set values by hand at code \n" << endl;
+
 		exit(1);
 	}
 	const char* instancia = argv[1];
-	bool mipStart = atoi(argv[2]);
-	int tLim = atoi(argv[3]);
-	int nIntervalsCoef = atoi(argv[4]);
+	int tLim = atoi(argv[2]);
+	bool mipStart = atoi(argv[3]);
+	int argvMaxTries(atoi(argv[4]));
+	int nIntervalsCoef = atoi(argv[5]);
+
 	string filename = instancia;
+	cout << "==============================================" << endl;
 	cout << "filename = " << filename << endl;
 	cout << "mipStart = " << mipStart << endl;
 	cout << "tLim = " << tLim << endl;
@@ -86,6 +92,7 @@ int main(int argc, char **argv)
 	cout << "seed = " << seed << endl;
 	srand(seed);
 	rg.setSeed(seed);
+	cout << "==============================================\n" << endl;
 
 	//	readParetoSets rPS;
 	//	rPS.exec(filename, mipStart, nIntervalsCoef, tLim);
@@ -93,9 +100,10 @@ int main(int argc, char **argv)
 	//	mModel.analyzeParetoFronts("./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10-bestMIPStart", 68, "./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10", 44);
 	//	getchar();
 
-	cplexMOPoolSearch mModel(rg);
 	int nOptObj = 7;
 	int nCriteria = 0;
+	MOMETRICS<int> moMetrics(nOptObj);
+	cplexMOPoolSearch mModel(rg, moMetrics);
 
 	//================================
 	//Generating objective functions weights with pre-defined vector of lambda values
@@ -114,14 +122,42 @@ int main(int argc, char **argv)
 	{	1, 10};
 	vPossibleCoefs[6] =
 	{	1, 10};
+//	vPossibleCoefs[0] =
+//	{	1};
+//	vPossibleCoefs[1] =
+//	{	0.1};
+//	vPossibleCoefs[2] =
+//	{	1};
+//	vPossibleCoefs[3] =
+//	{	1};
+//	vPossibleCoefs[4] =
+//	{	0.01,};
+//	vPossibleCoefs[5] =
+//	{	1};
+//	vPossibleCoefs[6] =
+//	{	1};
 	//================================
 
 	vector<vector<double> > vMILPCoefs;
 	fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
-	cout << vMILPCoefs << endl;
-	int maxTriesWithTLimUntilFirstFeasible = 10; //max number of times it will optimize with tLim until finding the First Feasible
+	cout << "possible combination are:\n" << vMILPCoefs << endl;
+	int maxTriesWithTLimUntilFirstFeasible = argvMaxTries; //max number of times it will optimize with tLim until finding the First Feasible
+	maxTriesWithTLimUntilFirstFeasible = 30;
 
-	mModel.exec(filename, mipStart, vMILPCoefs, tLim, nOptObj, nCriteria, maxTriesWithTLimUntilFirstFeasible);
+	vector<vector<double> > obtainedPFValues;
+	obtainedPFValues = mModel.exec(filename, mipStart, vMILPCoefs, tLim, nOptObj, nCriteria, maxTriesWithTLimUntilFirstFeasible);
+
+//	 obj: + totalDist + timeToDeliver + nUsedDrones + dronesMaxSpeed
+//	 + maximizeFinalCharge + makeSpanLC + makeSpanLD
+
+//	vector<double> referencePointsHV =
+//	{ 100, 500, 30, 150, 1500, 31, 30 };
+//	vector<double> utopicSol =
+//	{ 0, 1, 1, 10, 0, 1, 2 };
+//	double hv = uND.hipervolumeWithExecRequested(obtainedPFValues, referencePointsHV);
+//	double delta = uND.deltaMetric(obtainedPFValues, utopicSol);
+//	cout << "hv = " << hv << endl;
+//	cout << "delta = " << delta << endl;
 
 	cout << "Main finished com sucesso!" << endl;
 }
