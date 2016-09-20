@@ -8,10 +8,29 @@
 #include "./cplexMOPoolSearch.hpp"
 #include "./readParetoSets.hpp"
 #include "./OptFrame/Loader.hpp"
+#include "SPOOLStructSmartStorage.h"
+
 
 using namespace std;
 using namespace optframe;
 
+vector<string> generateInstanceNames(string filename, vector<int> vNMilp, vector<int> vTlim)
+{
+	stringstream ss;
+	vector<string> vInstances;
+
+	//Temp vector discretization T for the instances of the UAV routing
+//	vector<int> vTMax;
+
+	for (int n = 0; n < vNMilp.size(); n++)
+		for (int tLim = 0; tLim < vTlim.size(); tLim++)
+		{
+			ss << "./ResultadosFronteiras/" << filename << "NExec" << n << "TLim" << tLim; // << "-bestMIPStart";
+			vInstances.push_back(ss.str());
+		}
+
+	return vInstances;
+}
 void fillVectorWithAllCombinations(vector<vector<double> >& values, vector<vector<double> >& combinations)
 {
 	vector<int> vIndex(values.size(), 0);
@@ -61,7 +80,7 @@ int main(int argc, char **argv)
 {
 	int nOfArguments = 5;
 
-	if (argc != (1 + nOfArguments))
+	if (argc < (1 + nOfArguments))
 	{
 		cout << "Parametros incorretos!" << endl;
 		cout << "At least two parameters should be given : \n"
@@ -76,7 +95,9 @@ int main(int argc, char **argv)
 	const char* instancia = argv[1];
 	int tLim = atoi(argv[2]);
 	bool mipStart = atoi(argv[3]);
-	int argvMaxTries(atoi(argv[4]));
+	//max number of times it will optimize with tLim until finding the First Feasible
+	int argvMaxTriesWithTLimUntilFirstFeasible(atoi(argv[4]));
+	argvMaxTriesWithTLimUntilFirstFeasible = 100; //todo forcing value
 	int nIntervalsCoef = atoi(argv[5]);
 
 	string filename = instancia;
@@ -100,64 +121,94 @@ int main(int argc, char **argv)
 	//	mModel.analyzeParetoFronts("./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10-bestMIPStart", 68, "./ResultadosFronteiras/ParetoFrontInputbWCMNExec27TLim10", 44);
 	//	getchar();
 
-	int nOptObj = 7;
+	int nOptObj = 3;
 	int nCriteria = 0;
+	vector<double> referencePointsHV =
+	{ 10000, 10000, 10000 };
+	vector<double> utopicSol =
+	{ -1000, 0, 0 };
 	MOMETRICS<int> moMetrics(nOptObj);
-	cplexMOPoolSearch mModel(rg, moMetrics);
+//	SPOOLStruct spoolStruct(moMetrics, referencePointsHV, utopicSol);
+
+	//Specific struct for Smart Storage Problems -- TODO -- Adapt for your problem your use default
+	SPOOLStructSmartStorage spoolStructSmartStorage(moMetrics, referencePointsHV, utopicSol);
+	cplexMOPoolSearch mModel(rg, spoolStructSmartStorage);
 
 	//================================
 	//Generating objective functions weights with pre-defined vector of lambda values
 	vector<vector<double> > vPossibleCoefs(nOptObj);
-	vPossibleCoefs[0] =
-	{	1, 10};
-	vPossibleCoefs[1] =
-	{	0.1,1};
-	vPossibleCoefs[2] =
-	{	1, 10};
-	vPossibleCoefs[3] =
-	{	1};
-	vPossibleCoefs[4] =
-	{	0.01, 0.1};
-	vPossibleCoefs[5] =
-	{	1, 10};
-	vPossibleCoefs[6] =
-	{	1, 10};
 //	vPossibleCoefs[0] =
-//	{	1};
+//	{	0, 0.5, 1};
 //	vPossibleCoefs[1] =
-//	{	0.1};
+//	{	0, 0.1,1};
 //	vPossibleCoefs[2] =
-//	{	1};
-//	vPossibleCoefs[3] =
-//	{	1};
-//	vPossibleCoefs[4] =
-//	{	0.01,};
-//	vPossibleCoefs[5] =
-//	{	1};
-//	vPossibleCoefs[6] =
-//	{	1};
-	//================================
-
+//	{	0.0001, 0.1, 10};
+	vPossibleCoefs[0] =
+	{	0.5};
+	vPossibleCoefs[1] =
+	{	1, 0.1};
+	vPossibleCoefs[2] =
+	{	0.0001};
 	vector<vector<double> > vMILPCoefs;
 	fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
 	cout << "possible combination are:\n" << vMILPCoefs << endl;
-	int maxTriesWithTLimUntilFirstFeasible = argvMaxTries; //max number of times it will optimize with tLim until finding the First Feasible
-	maxTriesWithTLimUntilFirstFeasible = 30;
+	getchar();
+	//================================
+
+	readParetoSets rPS(nOptObj, moMetrics);
+//	vector<string> vInstances =
+//	{ "lowerLayerT6NExec64TLim10", "lowerLayerT6NExec64TLim20", "lowerLayerT6NExec64TLim30", "lowerLayerT6NExec64TLim40",
+//			"lowerLayerT7NExec64TLim10", "lowerLayerT7NExec64TLim20", "lowerLayerT7NExec64TLim30", "lowerLayerT7NExec64TLim40",
+//			"lowerLayerT10NExec64TLim20", "lowerLayerT10NExec64TLim30", "lowerLayerT10NExec64TLim40",
+//			"lowerLayerT15NExec64TLim30", "lowerLayerT15NExec64TLim40" };
+
+//	vector<string> vInstances =
+//	{
+//	"REED_1House_1PEVs_3UAVs_120FH",
+//	"REED_1House_1PEVs_5UAVs_120FH",
+//	"REED_1House_2PEVs_3UAVs_120FH",
+//	"REED_1House_2PEVs_5UAVs_120FH",
+//	"ResidencialArea_A_20PEVs_20UAVs_120FH",
+//	"ResidencialArea_A_20PEVs_50UAVs_120FH",
+//	"ResidencialArea_A_5PEVs_20UAVs_120FH",
+//	"ResidencialArea_A_5PEVs_50UAVs_120FH"};
+
+//	vector<string> vInstances =
+//	{
+//	"REED_1House_1PEVs_3UAVs_120FH",
+//	"REED_1House_1PEVs_5UAVs_120FH",
+//	"REED_1House_2PEVs_3UAVs_120FH",
+//	"REED_1House_2PEVs_5UAVs_120FH",
+//	"ResidencialArea_A_20PEVs_20UAVs_120FH",
+//	"ResidencialArea_A_20PEVs_50UAVs_120FH",
+//	"ResidencialArea_A_5PEVs_20UAVs_120FH",
+//	"ResidencialArea_A_5PEVs_50UAVs_120FH"};
+//
+//
+//	for (int i = 0; i < vInstances.size(); i++)
+//	{
+//		stringstream tempss;
+//		tempss << "./ResultadosFronteiras/APEN_SI/" << vInstances[i];
+//		vInstances[i] = tempss.str();
+//	}
+//	vInstances = generateInstanceNames();
+
+//	rPS.exec(vInstances, utopicSol, referencePointsHV);
+//	cout << "Read Pareto finished with sucess!" << endl;
+//	getchar();
+
 
 	vector<vector<double> > obtainedPFValues;
-	obtainedPFValues = mModel.exec(filename, mipStart, vMILPCoefs, tLim, nOptObj, nCriteria, maxTriesWithTLimUntilFirstFeasible);
+	obtainedPFValues = mModel.exec(filename, mipStart, vMILPCoefs, tLim, nOptObj, nCriteria, argvMaxTriesWithTLimUntilFirstFeasible);
 
+	//CORS - UAV Routing OBJ
 //	 obj: + totalDist + timeToDeliver + nUsedDrones + dronesMaxSpeed
 //	 + maximizeFinalCharge + makeSpanLC + makeSpanLD
 
-//	vector<double> referencePointsHV =
-//	{ 100, 500, 30, 150, 1500, 31, 30 };
-//	vector<double> utopicSol =
-//	{ 0, 1, 1, 10, 0, 1, 2 };
-//	double hv = uND.hipervolumeWithExecRequested(obtainedPFValues, referencePointsHV);
-//	double delta = uND.deltaMetric(obtainedPFValues, utopicSol);
-//	cout << "hv = " << hv << endl;
-//	cout << "delta = " << delta << endl;
+	double hv = moMetrics.hipervolumeWithExecRequested(obtainedPFValues, referencePointsHV, true);
+	double delta = moMetrics.deltaMetric(obtainedPFValues, utopicSol, true);
+	cout << "hv = " << hv << endl;
+	cout << "delta = " << delta << endl;
 
 	cout << "Main finished com sucesso!" << endl;
 }

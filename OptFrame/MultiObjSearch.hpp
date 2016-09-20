@@ -767,14 +767,10 @@ public:
 		p.addSolution(*pDom, *pDomWeak, D, ind);
 	}
 
-	vector<vector<double> > unionSets(vector<vector<double> > D1, vector<vector<double> > D2)
+	void unionSets(vector<vector<double> >& ref, vector<vector<double> > D2)
 	{
-		vector<vector<double> > ref = D1;
-
 		for (int ind = 0; ind < D2.size(); ind++)
 			p.addSolution(*pDom, *pDomWeak, ref, D2[ind]);
-
-		return ref;
 	}
 
 	vector<vector<double> > getParetoEvaluations(Pareto<R, ADS>& pf, int nEv)
@@ -1042,8 +1038,8 @@ public:
 			}
 			fprintf(fTempHV, "\n");
 		}
-
 		fclose(fTempHV);
+
 		stringstream ss;
 		ss << "./hv\t -r \"";
 		for (int o = 0; o < nObj; o++)

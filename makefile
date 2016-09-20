@@ -7,7 +7,7 @@ CCLNFLAGS = -L$(CPLEXDIR)/lib/x86-64_linux/static_pic -DIL_STD -lilocplex -lcple
 CCINCFLAG = -I$(CPLEXDIR)/include -I$(CONCERTDIR)/include 
 
 efp:
-	g++ ./main.cpp ./OptFrame/Scanner++/Scanner.cpp $(CCLNFLAGS) $(CCINCFLAG) --std=c++11 -O3 -o main
+	g++ ./main.cpp ./SPOOLStructSmartStorage.cpp ./OptFrame/Scanner++/Scanner.cpp $(CCLNFLAGS) $(CCINCFLAG) --std=c++11 -O3 -o main
 
 	
 clean:

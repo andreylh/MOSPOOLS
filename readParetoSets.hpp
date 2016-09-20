@@ -12,8 +12,12 @@ using namespace optframe;
 class readParetoSets
 {
 public:
+	MOMETRICS<int> moMetrics;
+	int nOptObj;
+public:
 
-	readParetoSets()
+	readParetoSets(int _nOptObj, MOMETRICS<int> _moMetrics) :
+			nOptObj(_nOptObj), moMetrics(_moMetrics)
 	{
 
 	}
@@ -23,75 +27,43 @@ public:
 
 	}
 
-	void exec()
+	void exec(vector<string> vInputModel, vector<double> utopicSol, vector<double> referencePointsHV)
 	{
-		cout << "Exec Math Model WLAN TC Disciplina Multiobjectivo" << endl;
-		MOMETRICS<int> uND(2);
-
-		vector<string> vInputModel;
-		vInputModel.push_back("arq100m");
-		vInputModel.push_back("arq50m");
-		vInputModel.push_back("arq10m");
-		vector<int> vNMaxOpt;
-		vNMaxOpt.push_back(50);
-		vNMaxOpt.push_back(100);
-		vNMaxOpt.push_back(200);
-		vector<int> vTLim;
-		vTLim.push_back(20);
-		vTLim.push_back(60);
+		cout << "Exec Math read Pareto Sets ! \n Be sure to insert an UtopicSol and References points" << endl;
 
 		vector<vector<vector<double> > > vParetoSet;
 		vector<vector<double> > paretoSetRef;
-		double maxEval1 = 0;
-		double maxEval2 = 0;
-		double minEval1 = 1000000;
-		double minEval2 = 1000000;
 
 		for (int iM = 0; iM < vInputModel.size(); iM++)
-			for (int nM = 0; nM < vNMaxOpt.size(); nM++)
-				for (int tL = 0; tL < vTLim.size(); tL++)
+		{
+			cout << "Reading file: " << vInputModel[iM] << "....." << endl;
+
+			Scanner scanner(new File(vInputModel[iM]));
+			vector<vector<double> > paretoSet;
+			while (scanner.hasNextDouble())
+			{
+				vector<double> fo;
+				bool add = true;
+				for (int o = 0; o < nOptObj; o++)
 				{
-					stringstream ss;
-					ss << "./ResultadosFronteiras/FronteiraPareto" << vInputModel[iM] << "N" << vNMaxOpt[nM] << "T" << vTLim[tL];
-					cout << "reading pareto set of model = " << vInputModel[iM] << endl;
-					cout << "max = " << vNMaxOpt[nM] << endl;
-					cout << "time limit = " << vTLim[tL] << endl;
-					Scanner scanner(new File(ss.str()));
-					vector<vector<double> > paretoSet;
-					while (scanner.hasNext())
+					if (scanner.hasNextDouble())
 					{
-						vector<double> fo;
-						double eval1 = scanner.nextDouble();
-						double eval2 = scanner.nextDouble();
-						fo.push_back(eval1);
-						fo.push_back(eval2);
-						if (eval1 > maxEval1)
-							maxEval1 = eval1;
-						if (eval2 > maxEval2)
-							maxEval2 = eval2;
-
-						if (eval1 < minEval1)
-							minEval1 = eval1;
-						if (eval2 < minEval2)
-							minEval2 = eval2;
-
-						paretoSet.push_back(fo);
-
+						fo.push_back(scanner.nextDouble());
 					}
-					paretoSetRef = uND.unionSets(paretoSetRef, paretoSet);
-					cout<<paretoSetRef<<endl;
-					//execl("./hv", ss.str().c_str(), (char *) 0);
-
-					vParetoSet.push_back(paretoSet);
-					//getchar();
+					else
+					{
+						add = false;
+						break;
+					}
 				}
+				if (add)
+					paretoSet.push_back(fo);
 
-		cout << "maxEval1=" << maxEval1 << endl;
-		cout << "maxEval2=" << maxEval2 << endl;
-		cout << "minEval1=" << minEval1 << endl;
-		cout << "minEval2=" << minEval2 << endl;
-		//getchar();
-		//Calcula indicadores
+			}
+			moMetrics.unionSets(paretoSetRef, paretoSet);
+			vParetoSet.push_back(paretoSet);
+		}
+
 		vParetoSet.push_back(paretoSetRef);
 
 		vector<vector<double> > vIndicadoresQualidade;
@@ -102,41 +74,41 @@ public:
 			vector<vector<double> > paretoSet = vParetoSet[nPS];
 			vector<double> indicadores;
 			indicadores.push_back(paretoSet.size());
-
 			//printVectorPareto(paretoSetRef);
 			//cout << "conjuntoParetoAtual:" << endl;
 			//printVectorPareto(paretoSet);
-			double cardinalidade = uND.cardinalite(paretoSet, paretoSetRef);
-			double setCover = uND.setCoverage(paretoSet, paretoSetRef);
+			double cardinalidade = moMetrics.cardinalite(paretoSet, paretoSetRef);
+			double setCover = moMetrics.setCoverage(paretoSet, paretoSetRef);
+			double spacing = moMetrics.spacing(paretoSet);
 			indicadores.push_back(cardinalidade);
 			indicadores.push_back(setCover);
-			double sP1 = uND.spacing(paretoSet);
-			indicadores.push_back(sP1);
-			vector<double> utopicSol;
-			utopicSol.push_back(minEval1);
-			utopicSol.push_back(minEval2);
-			double delta = uND.deltaMetric(paretoSet, utopicSol, true);
+			indicadores.push_back(spacing);
+
+			double hv = -1;
+			double delta = -1;
+			if (utopicSol.size() > 0)
+				delta = moMetrics.deltaMetric(paretoSet, utopicSol, true);
+
+			if ((referencePointsHV.size() > 0) && (nPS < (vParetoSet.size() - 1)))
+				hv = moMetrics.hipervolumeWithExecRequested(paretoSet, referencePointsHV, true);
+
 			indicadores.push_back(delta);
+			indicadores.push_back(hv);
 			vIndicadoresQualidade.push_back(indicadores);
-			/*			cout << paretoSet.size() << endl;
-			 cout << cardinalidade << endl;
-			 cout << setCover << endl;
-			 cout << sP1 << endl;
-			 getchar();*/
+
+			if (nPS < (vParetoSet.size() - 1))
+				cout << "instance: " << vInputModel[nPS] << endl;
+			else
+				cout << "instance: Pareto Reference" << endl;
+
+			cout << "size: " << paretoSet.size() << "/" << paretoSetRef.size() << endl;
+			cout << "card: " << cardinalidade << endl;
+			cout << "CS: " << setCover << endl;
+			cout << "spacing: " << spacing << endl;
+			cout << "delta: " << delta << endl;
+			cout << "hv: " << hv << "\n" << endl;
 		}
-		int indexSol = 0;
-		for (int iM = 0; iM < vInputModel.size(); iM++)
-			for (int nM = 0; nM < vNMaxOpt.size(); nM++)
-				for (int tL = 0; tL < vTLim.size(); tL++)
-				{
-					stringstream ss;
-					ss << "./ResultadosFronteiras/FronteiraPareto" << vInputModel[iM] << "N" << vNMaxOpt[nM] << "T" << vTLim[tL];
-					vector<double> refPoints =
-					{ maxEval1 * 1.1, maxEval2 * 1.1 };
-					double hvValue = uND.hipervolumeWithExecRequested(ss.str(), refPoints);
-					vIndicadoresQualidade[indexSol].push_back(hvValue);
-					indexSol++;
-				}
+
 		cout << "printing pareto REF" << endl;
 		cout << paretoSetRef << endl;
 		cout << "printing Indicadores" << endl;

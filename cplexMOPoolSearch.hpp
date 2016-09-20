@@ -20,10 +20,10 @@
 #include <iostream>
 #include <fstream>      // std::ifstream
 #include <sstream>
-#include "OptFrame/MultiObjSearch.hpp"
 #include "OptFrame/RandGen.hpp"
 #include "OptFrame/Timer.hpp"
 #include "OptFrame/Util/printable.h"
+#include "OptFrame/MultiObjSearch.hpp"
 
 #include <vector>
 
@@ -42,15 +42,105 @@ struct MIPStartSolution
 	}
 };
 
+class SPOOLStruct
+{
+public:
+	MOMETRICS<int> moMetrics;
+	vector<vector<double> > popObjValues;
+	vector<vector<double> > paretoSET;
+
+	vector<double> referencePointsHV;
+	vector<double> utopicSol;
+
+	SPOOLStruct(MOMETRICS<int> _moMetrics, vector<double> _referencePointsHV, vector<double> _utopicSol) :
+			moMetrics(_moMetrics), referencePointsHV(_referencePointsHV), utopicSol(_utopicSol)
+	{
+
+	}
+
+	virtual ~SPOOLStruct()
+	{
+
+	}
+
+	vector<vector<double> > getPopObjValues()
+	{
+		return popObjValues;
+	}
+
+	void updatedParetoSet()
+	{
+		paretoSET.clear();
+		paretoSET = moMetrics.createParetoSet(popObjValues);
+	}
+
+	vector<vector<double> > getParetoSet()
+	{
+		updatedParetoSet();
+		return paretoSET;
+	}
+
+	virtual vector<double> addSolToPop(const IloNumArray& vals, const IloNumVarArray& var, int nOptObj)
+	{
+		vector<double> solObj;
+		for (int o = 0; o < nOptObj; o++)
+		{
+			solObj.push_back(vals[o]);
+			cout << "obj(" << o + 1 << "): " << solObj[o] << "\t";
+		}
+//						cout << "obj(" << 7 << "): " << finalOF[7] << "\t"; //print excess auxiliary variable
+		cout << "\n";
+		popObjValues.push_back(solObj);
+		return solObj;
+	}
+
+	int getPopSize()
+	{
+		return popObjValues.size();
+	}
+
+	double getParetoHyperVolume()
+	{
+		return moMetrics.hipervolumeWithExecRequested(paretoSET, referencePointsHV, true);
+	}
+
+	double getParetoDeltaMetric()
+	{
+		return moMetrics.deltaMetric(paretoSET, referencePointsHV, true);
+	}
+
+	virtual void exportParetoFrontValues(string filename, int nMILPProblems, int tLim, int nOptObj, double tNow){
+
+		int nParetoInd = paretoSET.size();
+		stringstream ss;
+		ss << "./ResultadosFronteiras/" << filename << "NExec" << nMILPProblems << "TLim" << tLim; // << "-bestMIPStart";
+		cout << "Writing PF at file: " << ss.str() << "..." << endl;
+		FILE* fFronteiraPareto = fopen(ss.str().c_str(), "w");
+		for (int nS = 0; nS < nParetoInd; nS++)
+		{
+			for (int nE = 0; nE < nOptObj; nE++)
+			{
+				fprintf(fFronteiraPareto, "%.5f\t", paretoSET[nS][nE]);
+			}
+			fprintf(fFronteiraPareto, "\n");
+		}
+		fprintf(fFronteiraPareto, "%.5f \n", tNow);
+		fprintf(fFronteiraPareto, "hv: %.5f \n", getParetoHyperVolume());
+		fprintf(fFronteiraPareto, "delta: %.5f \n", getParetoDeltaMetric());
+		fclose(fFronteiraPareto);
+		cout << "File wrote with success!" << endl;
+	}
+};
+
 class cplexMOPoolSearch
 {
 
 public:
 	RandGen& rg;
-		MOMETRICS<int> moMetrics;
+	SPOOLStruct& spoolStruct;
 
-	cplexMOPoolSearch(RandGen& _rg, MOMETRICS<int> _moMetrics) :
-			rg(_rg), moMetrics(_moMetrics)
+	cplexMOPoolSearch(RandGen& _rg, SPOOLStruct& _spoolStruct) :
+			rg(_rg), spoolStruct(_spoolStruct)
 
 	{
 
@@ -72,8 +162,6 @@ public:
 
 		int nMILPProblems = vMILPCoefs.size();
 		cout << "nMILPProblems = " << nMILPProblems << endl;
-
-		vector<vector<double> > popObjValues;
 
 		IloEnv env;
 		try
@@ -112,12 +200,14 @@ public:
 
 				cplex.extract(model);
 
-				//Option that read MST the previous solves MILP problem
-//				cplex.readMIPStarts("tempMIPStart/mst0.mst");
+				//Option that read MST of the the previous solves MILP problem -- TODO
+				//Maybe a list of MST can be passed as optional vector of the exec, with path directing to previous MST
+				//Which may be repaired
+			   //cplex.readMIPStarts("tempMIPStart/mst0.mst");
 
 				int totalNMIPStartSolutions = poolMIPStart.size();
 				// =====================================================
-				//Read the file with the best MIP start
+				//Read the file with the best MIP start // TODO -- for minimization problems - otherwise, it will get the worse one
 				if (totalNMIPStartSolutions > 0)
 				{
 					cout << "Pool of MIP start solution has: " << totalNMIPStartSolutions << " possibilities" << endl;
@@ -204,19 +294,10 @@ public:
 						//Extracting values from each solution
 						cplex.getValues(vals, var, nS);
 
-						vector<double> solObj;
-						for (int o = 0; o < nOptObj; o++)
-						{
-							solObj.push_back(vals[o]);
-							cout << "obj(" << o + 1 << "): " << solObj[o] << "\t";
-						}
-//						cout << "obj(" << 7 << "): " << finalOF[7] << "\t"; //print excess auxiliary variable
-						cout << "\n";
-
-						popObjValues.push_back(solObj);
+						vector<double> solObj = spoolStruct.addSolToPop(vals, var, nOptObj);
 
 						//==============================================
-						// Exaustive writing of MST solutions in a file
+						// Write MST solutions in different files
 						if (mipStart)
 						{
 							cout << "Writing MST solution...." << endl;
@@ -243,52 +324,22 @@ public:
 			// All problem were called!
 			//=========================================================================================
 
-			int nObtainedSolutions = popObjValues.size();
+			int nObtainedSolutions = spoolStruct.getPopSize();
 			cout << "Total time spent: " << tTotal.now() << endl;
 			cout << "Size of the obtained population:" << nObtainedSolutions << endl;
 
 			if (nObtainedSolutions > 0)
 			{
 				cout << "Printing obtained population of solutions with size: " << nObtainedSolutions << endl;
-				cout << popObjValues << endl;
-				paretoSET = moMetrics.createParetoSet(popObjValues);
+				cout << spoolStruct.getPopObjValues() << endl;
+
+				paretoSET = spoolStruct.getParetoSet();
 				double nParetoInd = paretoSET.size();
 
 				cout << "Printing Pareto Front of size: " << paretoSET.size() << endl;
 				cout << paretoSET << endl;
-				vector<vector<vector<double> > > vParetoSet;
-				vParetoSet.push_back(paretoSET);
 
-				//=================================
-				//remove or generalize for future applications
-				vector<double> referencePointsHV =
-				{ 100, 500, 30, 150, 1500, 31, 30 };
-				vector<double> utopicSol =
-				{ 0, 1, 1, 10, 0, 1, 2 };
-				double hv = moMetrics.hipervolumeWithExecRequested(paretoSET, referencePointsHV, true);
-				double delta = moMetrics.deltaMetric(paretoSET, utopicSol, true);
-				cout << "hv: " << hv << endl;
-				cout << "delta: " << delta << endl;
-				//=========================================
-
-				stringstream ss;
-				ss << "./ResultadosFronteiras/" << filename << "NExec" << nMILPProblems << "TLim" << tLim; // << "-bestMIPStart";
-				cout << "Writing PF at file: " << ss.str() << "..." << endl;
-				FILE* fFronteiraPareto = fopen(ss.str().c_str(), "w");
-				for (int nS = 0; nS < nParetoInd; nS++)
-				{
-					for (int nE = 0; nE < nOptObj; nE++)
-					{
-						fprintf(fFronteiraPareto, "%.5f\t", paretoSET[nS][nE]);
-					}
-					fprintf(fFronteiraPareto, "\n");
-				}
-				fprintf(fFronteiraPareto, "%.5f \n", tTotal.now());
-				fprintf(fFronteiraPareto, "hv: %.5f \n", hv);
-				fprintf(fFronteiraPareto, "delta: %.5f \n", delta);
-				fclose(fFronteiraPareto);
-				cout << "File wrote with success!" << endl;
-
+				spoolStruct.exportParetoFrontValues(filename,nMILPProblems,tLim,nOptObj,tTotal.now());
 			}
 			else
 			{
@@ -319,8 +370,6 @@ public:
 		cout << "===================================== \n" << endl;
 		return paretoSET;
 	}
-
-// 2
 
 };
 
