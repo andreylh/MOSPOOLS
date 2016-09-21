@@ -10,7 +10,6 @@
 #include "./OptFrame/Loader.hpp"
 #include "SPOOLStructSmartStorage.h"
 
-
 using namespace std;
 using namespace optframe;
 
@@ -76,8 +75,62 @@ void fillVectorWithAllCombinations(vector<vector<double> >& values, vector<vecto
 
 }
 
+int mainComputeValuesAPEN_SI()
+{
+
+	int nOptObj = 3;
+
+	MOMETRICS<int> moMetrics(nOptObj);
+
+	readParetoSets rPS(nOptObj, moMetrics);
+
+	string folderName = "ResultadosFronteiras/APEN_SI_OPTPLEX/";
+	string instanceName = "ResidencialArea_A_20PEVs_50UAVs_120FHNExec27";
+	string dc1 = "TLim10";
+	string dc2 = "TLim30";
+	string dc3 = "TLim60";
+
+	vector<string> vInstances;
+	int nBatches = 2;
+
+	for (int r = 1; r <= nBatches; r++)
+	{
+		stringstream ssInstanceName;
+		ssInstanceName << folderName << "R" << r << "/" << instanceName;
+		//vInstances.push_back(ssInstanceName.str().c_str() + dc1);
+		vInstances.push_back(ssInstanceName.str().c_str() + dc2);
+		vInstances.push_back(ssInstanceName.str().c_str() + dc3);
+
+	}
+
+	string paretoOutput = folderName + instanceName;
+
+//{ 100, 2000, 100 }; First MG
+	vector<double> referencePointsHV =
+	{ 10000, 2000, 500 };
+	vector<double> utopicSol =
+	{ -100, 0, 0 };
+
+//	for (int i = 0; i < vInstances.size(); i++)
+//	{
+//		stringstream tempss;
+//		tempss << "./ResultadosFronteiras/APEN_SI/" << vInstances[i];
+//		vInstances[i] = tempss.str();
+//	}
+//	vInstances = generateInstanceNames();
+
+	int nDiffConfigurations = vInstances.size() / nBatches;
+	cout << "going to read " << nBatches << " batches with " << nDiffConfigurations << " configurations" << endl;
+	rPS.execForBatches(vInstances, utopicSol, referencePointsHV, paretoOutput, nBatches, nDiffConfigurations);
+
+	cout << "Compute values finished com sucesso!" << endl;
+}
+
 int main(int argc, char **argv)
 {
+	mainComputeValuesAPEN_SI();
+
+	exit(1);
 	int nOfArguments = 5;
 
 	if (argc < (1 + nOfArguments))
@@ -152,7 +205,7 @@ int main(int argc, char **argv)
 	vector<vector<double> > vMILPCoefs;
 	fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
 	cout << "possible combination are:\n" << vMILPCoefs << endl;
-	getchar();
+//	getchar();
 	//================================
 
 	readParetoSets rPS(nOptObj, moMetrics);
@@ -196,7 +249,6 @@ int main(int argc, char **argv)
 //	rPS.exec(vInstances, utopicSol, referencePointsHV);
 //	cout << "Read Pareto finished with sucess!" << endl;
 //	getchar();
-
 
 	vector<vector<double> > obtainedPFValues;
 	obtainedPFValues = mModel.exec(filename, mipStart, vMILPCoefs, tLim, nOptObj, nCriteria, argvMaxTriesWithTLimUntilFirstFeasible);
