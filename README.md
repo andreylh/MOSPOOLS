@@ -10,7 +10,9 @@ This project describes the Multi-Objective Smart Pool Search Matheuristic (MOSPO
 
 ## Useful commands
 
-### Generating pareto fronts graphs
+### Generating Pareto fronts graphs
+
+TODO
 
 ### GLPK
 
@@ -22,6 +24,10 @@ Convert to LP:
 * `glpsol --model arq.mod --data arq.dat --wcpxlp arq.lp --check`
 * `glpsol -m model.mod -d data.dat -wcpxlp model.lp -nointopt -nomip -tmlim 0`.
 
+### Developing on Eclipse
+
+Include libraries paths `/opt/ibm/ILOG/CPLEX_Studio$Version/concert/include` and
+`/opt/ibm/ILOG/CPLEX_Studio$Version/cplex/include` to `C/C++ General -> Paths and Symbols -> GNU C++ (Includes)`
 
 ## Current maintainers
 
