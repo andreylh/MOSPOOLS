@@ -7,7 +7,6 @@
 #include <iostream>
 #include "./cplexMOPoolSearch.hpp"
 #include "./readParetoSets.hpp"
-#include "./OptFrame/Loader.hpp"
 #include "SPOOLStructSmartStorage.h"
 
 using namespace std;

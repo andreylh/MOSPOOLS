@@ -75,7 +75,7 @@ public:
 
 	Pareto<X>* getPareto()
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	void push_back(Solution<R>* s, vector<MultiEvaluation*>& v_e, Population<X, ADS>* v_x)
@@ -140,7 +140,7 @@ public:
 
 };
 
-template<class R, class X, class ADS = OPTFRAME_DEFAULT_ADS, class DS = OPTFRAME_DEFAULT_DS>
+template<class R, class X, class ADS = OPTFRAME_DEFAULT_ADS>
 class ExtendedMultiObjSearch: public Component
 {
 public:
@@ -153,7 +153,7 @@ public:
 	{
 	}
 
-	virtual ExtendedPareto<R, X, ADS>* search(double timelimit = 100000000, double target_f = 0, ExtendedPareto<R, X, ADS>* _pf = NULL) = 0;
+	virtual ExtendedPareto<R, X, ADS>* search(double timelimit = 100000000, double target_f = 0, ExtendedPareto<R, X, ADS>* _pf = nullptr) = 0;
 
 	virtual string log()
 	{
@@ -179,7 +179,7 @@ public:
 
 };
 
-template<class R, class X, class ADS = OPTFRAME_DEFAULT_ADS, class DS = OPTFRAME_DEFAULT_DS>
+template<class R, class X, class ADS = OPTFRAME_DEFAULT_ADS>
 class ExtendedMultiObjSearchBuilder: public ComponentBuilder<R, ADS>
 {
 public:

@@ -28,6 +28,7 @@ using namespace std;
 
 #include "Solution.hpp"
 #include "Evaluation.hpp"
+#include "Action.hpp"
 
 #include "Component.hpp"
 #include "ComponentBuilder.h"
@@ -35,50 +36,88 @@ using namespace std;
 namespace optframe
 {
 
-template< class R, class ADS = OPTFRAME_DEFAULT_ADS>
-class SingleObjSearch : public Component
+// Single Objective Stopping Criteria
+// Must include GENERAL stopping criteria
+// specific stopping criteria for metaheuristics can be included in their constructors
+class SOSC: public Component
 {
-   typedef vector<Evaluation*> FitnessValues;
-   typedef const vector<const Evaluation*> ConstFitnessValues;
+public:
+	// maximum timelimit (seconds)
+	double timelimit;
+	// target objective function
+	double target_f;
+
+	SOSC(double _timelimit = 100000000.0, double _target_f = 0.0) :
+			timelimit(_timelimit), target_f(_target_f)
+	{
+	}
+
+	virtual ~SOSC()
+	{
+	}
+
+	void updateTimeLimit(double subtrTL)
+	{
+		timelimit -= subtrTL;
+	}
+
+	SOSC newStopCriteriaWithTL(double subtrTL)
+	{
+		SOSC newStopCriteria = (*this);
+		newStopCriteria.timelimit -= subtrTL;
+		return newStopCriteria;
+	}
+
+
+	virtual string id() const
+	{
+		return "SOSC";
+	}
+};
+
+template<class R, class ADS = OPTFRAME_DEFAULT_ADS>
+class SingleObjSearch: public Component
+{
+	typedef vector<Evaluation*> FitnessValues;
+	typedef const vector<const Evaluation*> ConstFitnessValues;
 
 public:
 
-   SingleObjSearch()
-   {
-   }
+	SingleObjSearch()
+	{
+	}
 
-   virtual ~SingleObjSearch()
-   {
-   }
+	virtual ~SingleObjSearch()
+	{
+	}
 
-   // search method try to find a feasible solution within timelimit, if there is no such solution it returns NULL.
-   virtual pair<Solution<R, ADS>&, Evaluation&>* search(double timelimit = 100000000, double target_f = 0, const Solution<R, ADS>* _s = NULL,  const Evaluation* _e = NULL) = 0;
+	// search method try to find a feasible solution within timelimit, if there is no such solution it returns nullptr.
+	virtual pair<Solution<R, ADS>, Evaluation>* search(SOSC& stopCriteria, const Solution<R, ADS>* _s = nullptr, const Evaluation* _e = nullptr) = 0;
 
-   virtual string log()
-   {
-      return "Empty heuristic log.";
-   }
+	virtual string log() const
+	{
+		return "Empty heuristic log.";
+	}
 
-   virtual bool compatible(string s)
-   {
-	   return ( s == idComponent() ) || ( Component::compatible(s) );
-   }
+	virtual bool compatible(string s)
+	{
+		return (s == idComponent()) || (Component::compatible(s));
+	}
 
-   static string idComponent()
-   {
-	   stringstream ss;
-	   ss << Component::idComponent() << ":SingleObjSearch";
-	   return ss.str();
-   }
+	static string idComponent()
+	{
+		stringstream ss;
+		ss << Component::idComponent() << ":SingleObjSearch";
+		return ss.str();
+	}
 
-   virtual string id() const
-   {
-      return idComponent();
-   }
-
+	virtual string id() const
+	{
+		return idComponent();
+	}
 };
 
-template<class R, class ADS = OPTFRAME_DEFAULT_ADS, class DS = OPTFRAME_DEFAULT_DS>
+template<class R, class ADS = OPTFRAME_DEFAULT_ADS>
 class SingleObjSearchBuilder: public ComponentBuilder<R, ADS>
 {
 public:
@@ -110,9 +149,7 @@ public:
 	}
 };
 
-
-
-template<class R, class ADS = OPTFRAME_DEFAULT_ADS, class DS = OPTFRAME_DEFAULT_DS>
+template<class R, class ADS = OPTFRAME_DEFAULT_ADS>
 class SingleObjSearchAction: public Action<R, ADS>
 {
 public:
@@ -123,7 +160,7 @@ public:
 
 	virtual string usage()
 	{
-		return "OptFrame:SingleObjSearch idx   search    timelimit  target_f  OptFrame:Solution idx|-1   OptFrame:Evaluation idx|-1   [output_variable] => OptFrame:Solution|NULL";
+		return "OptFrame:SingleObjSearch idx   search    timelimit  target_f  OptFrame:Solution idx|-1   OptFrame:Evaluation idx|-1   [output_variable] => OptFrame:Solution|nullptr";
 	}
 
 	virtual bool handleComponent(string type)
@@ -143,7 +180,7 @@ public:
 
 	virtual bool doCast(string component, int id, string type, string variable, HeuristicFactory<R, ADS>& hf, map<string, string>& d)
 	{
-		if(!handleComponent(type))
+		if (!handleComponent(type))
 		{
 			cout << "SingleObjSearchAction::doCast error: can't handle component type '" << type << " " << id << "'" << endl;
 			return false;
@@ -151,25 +188,25 @@ public:
 
 		Component* comp = hf.components[component].at(id);
 
-		if(!comp)
+		if (!comp)
 		{
-			cout << "SingleObjSearchAction::doCast error: NULL component '" << component << " " << id << "'" << endl;
+			cout << "SingleObjSearchAction::doCast error: nullptr component '" << component << " " << id << "'" << endl;
 			return false;
 		}
 
-		if(!Component::compareBase(comp->id(), type))
+		if (!Component::compareBase(comp->id(), type))
 		{
 			cout << "SingleObjSearchAction::doCast error: component '" << comp->id() << " is not base of " << type << "'" << endl;
 			return false;
 		}
 
 		// remove old component from factory
-		hf.components[component].at(id) = NULL;
+		hf.components[component].at(id) = nullptr;
 
 		// cast object to lower type
-		Component* final = NULL;
+		Component* final = nullptr;
 
-		if(type == SingleObjSearch<R, ADS>::idComponent())
+		if (type == SingleObjSearch<R, ADS>::idComponent())
 		{
 			final = (SingleObjSearch<R, ADS>*) comp;
 		}
@@ -231,17 +268,17 @@ public:
 			Evaluation* e;
 			hf.assign(e, scanner.nextInt(), scanner.next());
 
-			pair<Solution<R, ADS>&, Evaluation&>* p = sios->search(timelimit, target_f, s, e);
+			pair<Solution<R, ADS>, Evaluation>* p = sios->search(SOSC(timelimit, target_f), s, e);
 
-			if(!p)
+			if (!p)
 				return true;
 
-			Solution<R, ADS>& s2 = p->first;
+			// TODO: use Move Semantics
+			Solution<R, ADS>* s2 = new Solution<R, ADS>(p->first);
 
-			delete& p->second;
 			delete p;
 
-			return Action<R, ADS>::addAndRegister(scanner, s2, hf, dictionary);
+			return Action<R, ADS>::addAndRegister(scanner, *s2, hf, dictionary);
 		}
 
 		// no action found!
@@ -251,6 +288,5 @@ public:
 };
 
 }
-
 
 #endif /* OPTFRAME_SINGLE_OBJ_SEARCH_HPP_ */

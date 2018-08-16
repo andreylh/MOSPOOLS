@@ -18,20 +18,22 @@
 // Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
 // USA.
 
-#ifndef RANDGEN_HPP_
-#define RANDGEN_HPP_
+#ifndef OPTFRAME_RANDGEN_HPP_
+#define OPTFRAME_RANDGEN_HPP_
 
+#include <vector>
 #include <math.h>
 #include <time.h>
 #include <cmath>
+#include <unistd.h>
 //#include <tgmath.h>
 
 #include "Component.hpp"
 #include "Action.hpp"
 #include "ComponentBuilder.h"
 
-#include<vector>
-#include <tr1/random>
+#include <random> //used for Binomial distribution requested by NGES
+//#include <tr1/random>
 
 namespace optframe
 {
@@ -62,7 +64,7 @@ protected:
 public:
 	RandGen()
 	{
-		seed = time(NULL);
+		seed = time(nullptr);
 		init = false;
 		hasNextG = false;
 		nextG = 0.0;
@@ -110,6 +112,8 @@ public:
 			init = true;
 		}
 
+		// TODO: https://ericlippert.com/2013/12/16/how-much-bias-is-introduced-by-the-remainder-technique/
+
 		return ::rand() % n;
 	}
 
@@ -142,18 +146,21 @@ public:
 
 	virtual int randBinomial(double p, int tries)
 	{
-		std::tr1::variate_generator<std::tr1::mt19937,
-				std::tr1::binomial_distribution<> > rngB(std::tr1::mt19937(123),
-				std::tr1::binomial_distribution<>(tries, p));
-		return rngB();
+		//std::tr1::variate_generator<std::tr1::mt19937, std::tr1::binomial_distribution<> > rngB(std::tr1::mt19937(123), std::tr1::binomial_distribution<>(tries, p));
+		//int y= rngB();
+		std::default_random_engine generator;
+		std::binomial_distribution<int> distribution(tries, p);
+		int y = distribution(generator);
+
+		return y;
 	}
 
 	virtual int randBinomialWithNegative(double p, int tries)
 	{
-		std::tr1::variate_generator<std::tr1::mt19937,
-				std::tr1::binomial_distribution<> > rngB(std::tr1::mt19937(123),
-				std::tr1::binomial_distribution<>(tries, p));
-		int y = rngB();
+		//std::tr1::variate_generator<std::tr1::mt19937, std::tr1::binomial_distribution<> > rngB(std::tr1::mt19937(123), std::tr1::binomial_distribution<>(tries, p));
+		//int y = rngB();
+		int y = randBinomial(p, tries);
+
 		int sign = this->rand(2);
 		if (sign == 1)
 			y *= -1;
@@ -211,6 +218,43 @@ public:
 		initialize();
 	}
 
+	unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
+	{
+		a = a - b;
+		a = a - c;
+		a = a ^ (c >> 13);
+		b = b - c;
+		b = b - a;
+		b = b ^ (a << 8);
+		c = c - a;
+		c = c - b;
+		c = c ^ (b >> 13);
+		a = a - b;
+		a = a - c;
+		a = a ^ (c >> 12);
+		b = b - c;
+		b = b - a;
+		b = b ^ (a << 16);
+		c = c - a;
+		c = c - b;
+		c = c ^ (b >> 5);
+		a = a - b;
+		a = a - c;
+		a = a ^ (c >> 3);
+		b = b - c;
+		b = b - a;
+		b = b ^ (a << 10);
+		c = c - a;
+		c = c - b;
+		c = c ^ (b >> 15);
+		return c;
+	}
+
+	unsigned long generateRandomSeed()
+	{
+		return mix(clock(), time(nullptr), getpid());
+	}
+
 	template<class T>
 	void shuffle(vector<T>& v)
 	{
@@ -249,11 +293,10 @@ public:
 	}
 
 	virtual Component*
-	buildComponent(Scanner& scanner, HeuristicFactory<R, ADS>& hf,
-			string family = "")
+	buildComponent(Scanner& scanner, HeuristicFactory<R, ADS>& hf, string family = "")
 	{
 		if (!scanner.hasNext())
-			return NULL;
+			return nullptr;
 
 		long seed = scanner.nextLong();
 
@@ -287,4 +330,4 @@ public:
 
 }
 
-#endif /* RANDGEN_HPP_ */
+#endif /* OPTFRAME_RANDGEN_HPP_ */

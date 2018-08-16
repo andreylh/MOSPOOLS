@@ -119,8 +119,6 @@ int main(int argc, char **argv)
 
 	int nOptObj = 7;
 	int nCriteria = 0;
-	MOMETRICS<int> moMetrics(nOptObj);
-	cplexMOPoolSearch mModel(rg, moMetrics);
 
 	//================================
 	//Generating objective functions weights with pre-defined vector of lambda values
@@ -160,6 +158,9 @@ int main(int argc, char **argv)
 	vector<double> utopicSol =
 	{ 0, 1, 1, 10, 0, 1, 2 };
 
+	MOMETRICS<int> moMetrics(nOptObj);
+	SPOOLStruct spoolStructSmartStorage(moMetrics, referencePointsHV, utopicSol);
+	cplexMOPoolSearch mModel(rg, spoolStructSmartStorage);
 	readParetoSets rPS(nOptObj, moMetrics);
 	vector<string> vInstances =
 	{ "lowerLayerT6NExec64TLim10", "lowerLayerT6NExec64TLim20", "lowerLayerT6NExec64TLim30", "lowerLayerT6NExec64TLim40",

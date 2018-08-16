@@ -56,7 +56,7 @@ public:
 					paretoSet.push_back(fo);
 
 			}
-			moMetrics.unionSets(paretoSetRef, paretoSet);
+			moMetrics.unionSetsReturnEvaluations(paretoSetRef, paretoSet);
 			vParetoSet.push_back(paretoSet);
 		}
 
@@ -94,7 +94,7 @@ public:
 					paretoSet.push_back(fo);
 
 			}
-			moMetrics.unionSets(paretoSetRef, paretoSet);
+			moMetrics.unionSetsReturnEvaluations(paretoSetRef, paretoSet);
 			vParetoSet.push_back(paretoSet);
 		}
 

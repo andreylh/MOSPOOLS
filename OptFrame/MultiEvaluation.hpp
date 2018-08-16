@@ -31,7 +31,7 @@ namespace optframe
 class MultiEvaluation: public Component
 {
 protected:
-	vector<Evaluation*> vev;
+	vector<Evaluation> vev;
 
 public:
 
@@ -39,32 +39,45 @@ public:
 	{
 	}
 
-	MultiEvaluation(Evaluation* ev)
+	MultiEvaluation(Evaluation ev)
 	{
 		vev.push_back(ev);
 	}
 
-	MultiEvaluation(const Evaluation& ev)
-	{
-		vev.push_back(&ev.clone());
-	}
+//	MultiEvaluation(const Evaluation ev)
+//	{
+//		vev.push_back(&ev.clone());
+//	}
 
 	MultiEvaluation(const vector<double>& vd)
 	{
 		for (unsigned i = 0; i < vd.size(); i++)
-			vev.push_back(new Evaluation(vd[i]));
+			vev.push_back(Evaluation(vd[i]));
 	}
 
-	MultiEvaluation(const vector<Evaluation*>& _vev)
-	{
-		for (unsigned i = 0; i < _vev.size(); i++)
-			vev.push_back(&_vev[i]->clone());
-	}
+//	MultiEvaluation(const vector<Evaluation*>& _vev)
+//	{
+//		for (unsigned i = 0; i < _vev.size(); i++)
+//			vev.push_back(&_vev[i]->clone());
+//	}
+
+//	MultiEvaluation(MultiEvaluation&& mev)
+//	{
+//		cout<<"finally here..."<<endl;
+//		for (unsigned i = 0; i < mev.vev.size(); i++)
+//			vev.push_back(std::move(mev.vev[i]));
+//	}
 
 	MultiEvaluation(const MultiEvaluation& mev)
 	{
 		for (unsigned i = 0; i < mev.vev.size(); i++)
-			vev.push_back(&mev.vev[i]->clone());
+			vev.push_back(mev.vev[i]);
+	}
+
+	MultiEvaluation(MultiEvaluation&& mev):
+		vev(std::move(mev.vev))
+	{
+
 	}
 
 	virtual ~MultiEvaluation()
@@ -75,22 +88,17 @@ public:
 	void print()
 	{
 		for (unsigned i = 0; i < vev.size(); i++)
-			vev[i]->print();
+			vev[i].print();
 	}
 
-	void addEvaluation(const Evaluation& ev)
-	{
-		vev.push_back(&ev.clone());
-	}
+//	void addEvaluation(const Evaluation ev)
+//	{
+//		vev.push_back(ev.clone());
+//	}
 
-	void addEvaluation(Evaluation* ev)
+	void addEvaluation(Evaluation ev)
 	{
 		vev.push_back(ev);
-	}
-
-	void addEvaluation(Evaluation& ev)
-	{
-		vev.push_back(&ev);
 	}
 
 	unsigned size() const
@@ -100,54 +108,57 @@ public:
 
 	void erase(unsigned index)
 	{
-		delete vev.at(index);
-		vev.at(index) = NULL;
 		vev.erase(vev.begin() + index);
 	}
 
-	Evaluation& at(unsigned index)
+	Evaluation at(unsigned index)
 	{
-		return *vev.at(index);
+		return vev[index];
 	}
 
-	const Evaluation& at(unsigned index) const
+	const Evaluation at(unsigned index) const
 	{
-		return *vev.at(index);
+		return vev[index];
 	}
 
-	Evaluation& operator[](unsigned index)
+	Evaluation operator[](unsigned index)
 	{
-		return *vev[index];
+		return vev[index];
 	}
 
-	const Evaluation& operator[](unsigned index) const
+	const Evaluation operator[](unsigned index) const
 	{
-		return *vev[index];
+		return vev[index];
 	}
 
-	const vector<Evaluation*>& getVector() const
+	void setOutdated(unsigned index, bool status)
 	{
-		return vev;
+		vev[index].outdated = status;
 	}
 
-	vector<Evaluation*> getCloneVector() const
-	{
-		vector<Evaluation*> v_e;
-		for (unsigned i = 0; i < vev.size(); i++)
-			v_e.push_back(&vev[i]->clone());
-		return v_e;
-	}
+//	const vector<Evaluation*>& getVector() const
+//	{
+//		return vev;
+//	}
 
-	bool sameValues(const MultiEvaluation& mev)
-	{
-		if (vev.size() != mev.vev.size())
-			return false;
+//	vector<Evaluation*> getCloneVector() const
+//	{
+//		vector<Evaluation*> v_e;
+//		for (unsigned i = 0; i < vev.size(); i++)
+//			v_e.push_back(&vev[i]->clone());
+//		return v_e;
+//	}
 
-		for (unsigned i = 0; i < vev.size(); i++)
-			if (vev[i]->evaluation() != mev.vev[i]->evaluation())
-				return false;
-		return true;
-	}
+//	bool sameValues(const MultiEvaluation& mev)
+//	{
+//		if (vev.size() != mev.vev.size())
+//			return false;
+//
+//		for (unsigned i = 0; i < vev.size(); i++)
+//			if (vev[i]->evaluation() != mev.vev[i]->evaluation())
+//				return false;
+//		return true;
+//	}
 
 	virtual MultiEvaluation& operator=(const MultiEvaluation& mev)
 	{
@@ -155,9 +166,8 @@ public:
 			return *this;
 
 		this->vev.clear();
-		this->vev.resize(mev.vev.size());
 		for (unsigned i = 0; i < mev.vev.size(); i++)
-			this->vev[i] = &(mev.vev[i]->clone());
+			this->vev.push_back(mev.vev[i]);
 
 		return *this;
 	}
@@ -167,15 +177,13 @@ public:
 		return *new MultiEvaluation(*this);
 	}
 
-	void clearNoKill()
-	{
-		this->vev.clear();
-	}
+//	void clearNoKill()
+//	{
+//		this->vev.clear();
+//	}
 
 	void clear()
 	{
-		for (unsigned i = 0; i < vev.size(); i++)
-			delete vev[i];
 		this->vev.clear();
 	}
 
@@ -189,12 +197,11 @@ public:
 		stringstream ss;
 		ss << "MultiEvaluation (" << vev.size() << "):";
 		for (unsigned i = 0; i < vev.size(); i++)
-			ss << vev[i]->toString() << endl;
+			ss << vev[i].toString() << endl;
 		return ss.str();
 	}
 
-}
-;
+};
 
 }
 

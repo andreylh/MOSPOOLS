@@ -73,9 +73,49 @@ public:
 	}
 
 	virtual void first() = 0;
+
+	virtual void firstValid(const Solution<R, ADS>& s)
+	{
+		first();
+
+		while(!isDone())
+		{
+			// TODO: verify if it's not null!
+			Move<R, ADS>& m = *current();
+			if(m.canBeAppliedToSolution(s))
+			{
+				delete &m;
+				break;
+			}
+
+			delete &m;
+			next();
+		}
+	}
+
 	virtual void next() = 0;
+
+	virtual void nextValid(const Solution<R, ADS>& s)
+	{
+		next();
+
+		while(!isDone())
+		{
+			// TODO: verify if it's not null!
+			Move<R, ADS>& m = *current();
+			if(m.canBeAppliedToSolution(s))
+			{
+				delete &m;
+				break;
+			}
+
+			delete &m;
+			next();
+		}
+	}
+
 	virtual bool isDone() = 0;
-	virtual Move<R, ADS>& current() = 0;
+	virtual Move<R, ADS>* current() = 0;
 
     // INSERT LOCAL OPTIMUM INFORMATION IN SOLUTION (IN ADS? USER DECIDES.)
     virtual void setLOS(LOS status, Solution<R, ADS>& s)

@@ -21,12 +21,11 @@
 #ifndef OPTFRAME_MULTI_EVALUATOR_HPP_
 #define OPTFRAME_MULTI_EVALUATOR_HPP_
 
+#include <iostream>
+
 #include "Solution.hpp"
 #include "Evaluator.hpp"
 #include "MultiEvaluation.hpp"
-
-#include <iostream>
-
 #include "MultiDirection.hpp"
 #include "Action.hpp"
 
@@ -40,129 +39,162 @@ template<class R, class ADS = OPTFRAME_DEFAULT_ADS>
 class MultiEvaluator: public MultiDirection
 {
 protected:
-	bool allowCosts; // move.cost() is enabled or disabled for this Evaluator
 	vector<Evaluator<R, ADS>*> sngEvaluators; // single evaluators
+	bool allowCosts; // move.cost() is enabled or disabled for this Evaluator
 
 public:
+
+	MultiEvaluator(vector<Evaluator<R, ADS>*> _veval) :
+			sngEvaluators(_veval), allowCosts(false)
+	{
+		for (unsigned i = 0; i < _veval.size(); i++)
+			if (_veval[i])
+				vDir.push_back(_veval[i]);
+		nObjectives = vDir.size();
+	}
 
 	MultiEvaluator(bool _allowCosts = false) :
 			allowCosts(_allowCosts)
 	{
 	}
 
-	MultiEvaluator(MultiDirection& mDir, bool _allowCosts = false) :
-			MultiDirection(mDir), allowCosts(_allowCosts)
+	virtual void addEvaluator(Evaluator<R, ADS>& ev)
 	{
+		sngEvaluators.push_back(&ev);
 	}
 
-	MultiEvaluator(vector<Direction*>& vDir, bool _allowCosts = false) :
-			MultiDirection(vDir), allowCosts(_allowCosts)
-	{
-	}
+//	MultiEvaluator(MultiDirection& mDir, bool _allowCosts = false) :
+//			MultiDirection(mDir), allowCosts(_allowCosts)
+//	{
+//	}
+//
+//	MultiEvaluator(vector<Direction*>& vDir, bool _allowCosts = false) :
+//			MultiDirection(vDir), allowCosts(_allowCosts)
+//	{
+//	}
 
-	MultiEvaluator(vector<Evaluator<R, ADS>*> _vDir) :
-			sngEvaluators(_vDir), allowCosts(false)
+//	MultiEvaluator(MultiEvaluator<R, ADS>& _mev) :
+//			sngEvaluators(*_mev.getEvaluators2()), allowCosts(false)
+//	{
+//		cout<<"sngEvaluators.size():"<<sngEvaluators.size()<<endl;
+//		for (unsigned i = 0; i < sngEvaluators.size(); i++)
+//			if (sngEvaluators[i])
+//				vDir.push_back(sngEvaluators[i]);
+//		nObjectives = vDir.size();
+//	}
+
+	virtual ~MultiEvaluator()
 	{
-		for (unsigned i = 0; i < _vDir.size(); i++)
-			if (_vDir[i])
-				vDir.push_back(_vDir[i]);
-		nObjectives = vDir.size();
 	}
 
 	unsigned size()
 	{
 		return sngEvaluators.size();
 	}
-	virtual ~MultiEvaluator()
+
+
+	unsigned size() const
 	{
+		return sngEvaluators.size();
 	}
 
-	bool getAllowCosts()
+	virtual bool betterThan(const Evaluation& ev1, const Evaluation& ev2, int index)
 	{
-		return allowCosts;
+		return sngEvaluators[index]->betterThan(ev1, ev2);
 	}
 
-	vector<Evaluator<R, ADS>*>* getEvaluators()
+	virtual bool equals(const Evaluation& ev1, const Evaluation& ev2, int index)
 	{
-		if (sngEvaluators.size() > 0)
+		return sngEvaluators[index]->equals(ev1, ev2);
+	}
+
+	MultiEvaluation evaluateSolution(const Solution<R, ADS>& s)
+	{
+		return evaluate(s.getR(), s.getADSptr());
+	}
+
+    //changed to Meval without point TODO
+	virtual MultiEvaluation evaluate(const R& r, const ADS* ads)
+	{
+		cout << "inside mother class" << endl;
+		getchar();
+		MultiEvaluation nev;
+		for (unsigned i = 0; i < sngEvaluators.size(); i++)
 		{
-			return new vector<Evaluator<R, ADS>*>(sngEvaluators);
+			Evaluation ev = sngEvaluators[i]->evaluate(r, ads);
+			nev.addEvaluation(ev);
 		}
-		else
-			return NULL;
+
+		return nev;
 	}
 
-	Evaluator<R, ADS>& at(unsigned index)
+
+	void clear()
 	{
-		return *sngEvaluators.at(index);
+		for (int e = 0; e < int(sngEvaluators.size()); e++)
+			delete sngEvaluators[e];
 	}
 
-	const Evaluator<R, ADS>& at(unsigned index) const
+	void reevaluateSolutionMEV(MultiEvaluation& mev, const Solution<R, ADS>& s)
 	{
-		return *sngEvaluators.at(index);
+		reevaluateMEV(mev, s.getR(),s.getADSptr());
 	}
 
-	Evaluator<R, ADS>& operator[](unsigned index)
-	{
-		return *sngEvaluators[index];
-	}
-
-	const Evaluator<R, ADS>& operator[](unsigned index) const
-	{
-		return *sngEvaluators[index];
-	}
-
-	// TODO: check
-	const vector<const Evaluator<R, ADS>*>* getEvaluators() const
-	{
-		if (sngEvaluators.size() > 0)
-			return new vector<const Evaluator<R, ADS>*>(sngEvaluators);
-		else
-			return NULL;
-	}
-
-	MultiEvaluation& evaluate(const Solution<R, ADS>& s)
-	{
-		return evaluate(s.getR(), s.getADS());
-	}
-
-public:
-	// protected: not possible because of GeneralizedMultiEvaluator
-
-	// TODO: make virtual "= 0"
-	virtual MultiEvaluation& evaluate(const R& r)
-	{
-		MultiEvaluation* nev = new MultiEvaluation;
-
-		for (unsigned i = 0; i < sngEvaluators.size(); i++)
-			nev->addEvaluation(sngEvaluators[i]->evaluate(r));
-
-		return *nev;
-	}
-
-	virtual MultiEvaluation& evaluate(const R& r, const ADS& ads)
-	{
-		MultiEvaluation* nev = new MultiEvaluation;
-
-		for (unsigned i = 0; i < sngEvaluators.size(); i++)
-			nev->addEvaluation(sngEvaluators[i]->evaluate(r, ads));
-
-		return *nev;
-	}
-
-	void evaluate(MultiEvaluation& mev, const Solution<R, ADS>& s)
-	{
-		evaluate(mev, s.getR(), s.getADS());
-	}
-
-	virtual void evaluate(MultiEvaluation& mev, const R& r, const ADS& ads)
+	virtual void reevaluateMEV(MultiEvaluation& mev, const R& r, const ADS* ads)
 	{
 		for (unsigned i = 0; i < sngEvaluators.size(); i++)
 		{
-			sngEvaluators[i]->evaluate(mev[i], r, ads);
+			Evaluation e = std::move(mev[i]);
+			sngEvaluators[i]->reevaluate(e, r, ads);
+			mev[i] = std::move(e);
 		}
-
 	}
+
+//	bool getAllowCosts()
+//	{
+//		return allowCosts;
+//	}
+
+//	vector<Evaluator<R, ADS>*> getEvaluators2()
+//	{
+//		return sngEvaluators;
+//	}
+
+	//	// TODO: check
+//	const vector<const Evaluator<R, ADS>*>* getEvaluatorsConstTest() const
+//	{
+//		if (sngEvaluators.size() > 0)
+//			return new vector<const Evaluator<R, ADS>*>(sngEvaluators);
+//		else
+//			return nullptr;
+//	}
+
+//	Evaluator<R, ADS>& at(unsigned index)
+//	{
+//		return *sngEvaluators.at(index);
+//	}
+//
+//	const Evaluator<R, ADS>& at(unsigned index) const
+//	{
+//		return *sngEvaluators.at(index);
+//	}
+//
+//	Evaluator<R, ADS>& operator[](unsigned index)
+//	{
+//		return *sngEvaluators[index];
+//	}
+//
+//	const Evaluator<R, ADS>& operator[](unsigned index) const
+//	{
+//		return *sngEvaluators[index];
+//	}
+
+//	void addEvaluator(const Evaluator<R, ADS>& ev)
+//	{
+//		sngEvaluators.push_back(&ev.clone());
+//	}
+
+
 
 protected:
 
@@ -186,7 +218,7 @@ protected:
 
 };
 
-template<class R, class ADS = OPTFRAME_DEFAULT_ADS, class DS = OPTFRAME_DEFAULT_DS>
+template<class R, class ADS = OPTFRAME_DEFAULT_ADS>
 class MultiEvaluatorAction: public Action<R, ADS>
 {
 public:
@@ -230,7 +262,7 @@ public:
 
 		if (!comp)
 		{
-			cout << "EvaluatorAction::doCast error: NULL component '" << component << " " << id << "'" << endl;
+			cout << "EvaluatorAction::doCast error: nullptr component '" << component << " " << id << "'" << endl;
 			return false;
 		}
 
@@ -241,10 +273,10 @@ public:
 		}
 
 		// remove old component from factory
-		hf.components[component].at(id) = NULL;
+		hf.components[component].at(id) = nullptr;
 
 		// cast object to lower type
-		Component* final = NULL;
+		Component* final = nullptr;
 
 		if (type == Evaluator<R, ADS>::idComponent())
 		{

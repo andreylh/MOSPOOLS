@@ -33,6 +33,8 @@ using namespace std;
 #include "Evaluation.hpp"
 
 #include "Component.hpp"
+#include "NSIterator.hpp"
+#include "SingleObjSearch.hpp"
 
 namespace optframe
 {
@@ -56,19 +58,19 @@ public:
    // core methods
 
    // no-optimization
-   Solution<R, ADS>& search(const Solution<R, ADS>& s, double timelimit = 100000000, double target_f = 0)
+   Solution<R, ADS>& search(const Solution<R, ADS>& s, SOSC& stopCriteria)
    {
       Solution<R, ADS>& s2 = s.clone();
-      exec(s2, timelimit, target_f);
+      exec(s2, stopCriteria);
       return s2;
    }
 
    // optimizated version
-   pair<Solution<R, ADS>&, Evaluation&>& search(const Solution<R, ADS>& s, const Evaluation& e, double timelimit = 100000000, double target_f = 0)
+   pair<Solution<R, ADS>&, Evaluation&>& search(const Solution<R, ADS>& s, const Evaluation& e, SOSC& stopCriteria)
    {
       Solution<R, ADS>& s2 = s.clone();
       Evaluation& e2 = e.clone();
-      exec(s2, e2, timelimit, target_f);
+      exec(s2, e2, stopCriteria);
       return *new pair<Solution<R, ADS>&, Evaluation&> (s2, e2);
    }
 
@@ -76,10 +78,21 @@ public:
    // core methods
 
    // 1
-   virtual void exec(Solution<R, ADS>& s, double timelimit, double target_f) = 0;
+   virtual void exec(Solution<R, ADS>& s, SOSC& stopCriteria) = 0;
 
    // 2
-   virtual void exec(Solution<R, ADS>& s, Evaluation& e, double timelimit, double target_f) = 0;
+   virtual void exec(Solution<R, ADS>& s, Evaluation& e, SOSC& stopCriteria) = 0;
+
+   // optional: set local optimum status (LOS)
+   virtual void setLOS(LOS los, string nsid, Solution<R, ADS>& s, Evaluation& e)
+   {
+   }
+
+   // optional: get local optimum status (LOS)
+   virtual LOS getLOS(string nsid, Solution<R, ADS>& s, Evaluation& e)
+   {
+	   return los_unknown;
+   }
 
    virtual bool compatible(string s)
    {

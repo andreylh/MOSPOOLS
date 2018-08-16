@@ -24,6 +24,7 @@
 #include "OptFrame/Timer.hpp"
 #include "OptFrame/Util/printable.h"
 #include "OptFrame/MultiObjSearch.hpp"
+#include "OptFrame/Util/MOMetrics.hpp"
 
 #include <vector>
 
@@ -46,8 +47,8 @@ class SPOOLStruct
 {
 public:
 	MOMETRICS<int> moMetrics;
-	vector<vector<double> > popObjValues;
-	vector<vector<double> > paretoSET;
+	vector<ParetoFitness > popObjValues;
+	vector<ParetoFitness > paretoSET;
 
 	vector<double> referencePointsHV;
 	vector<double> utopicSol;
@@ -63,7 +64,7 @@ public:
 
 	}
 
-	vector<vector<double> > getPopObjValues()
+	vector<ParetoFitness> getPopObjValues()
 	{
 		return popObjValues;
 	}
@@ -71,10 +72,10 @@ public:
 	void updatedParetoSet()
 	{
 		paretoSET.clear();
-		paretoSET = moMetrics.createParetoSet(popObjValues);
+		paretoSET = moMetrics.createParetoSetAndReturnEvaluations(popObjValues);
 	}
 
-	vector<vector<double> > getParetoSet()
+	vector<ParetoFitness> getParetoSet()
 	{
 		updatedParetoSet();
 		return paretoSET;
@@ -234,7 +235,7 @@ public:
 						}
 					}
 					cout << "best MIPStart solution is: " << bestFO << "\t index:" << bestMIPStartIndex << endl << endl;
-					cplex.readMIPStart(poolMIPStart[bestMIPStartIndex].filename.c_str());
+					cplex.readMIPStarts(poolMIPStart[bestMIPStartIndex].filename.c_str());
 				}
 				// =====================================================
 
@@ -304,7 +305,7 @@ public:
 							stringstream mstFilename;
 							mstFilename << "./tempMIPStart/mst" << poolMIPStart.size() << ".mst";
 //							cplex.writeMIPStarts(mstFilename.str().c_str(), nS, nCplexPoolOfSolutions);
-							cplex.writeMIPStart(mstFilename.str().c_str(), nS);
+							cplex.writeMIPStarts(mstFilename.str().c_str(), nS);
 							MIPStartSolution mipStartSol(solObj, mstFilename.str());
 							poolMIPStart.push_back(mipStartSol);
 							cout << "MST Saved in file with sucess!" << endl;

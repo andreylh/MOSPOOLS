@@ -131,7 +131,7 @@ public:
 
 };
 
-template<class R, class ADS = OPTFRAME_DEFAULT_ADS, class DS = OPTFRAME_DEFAULT_DS>
+template<class R, class ADS = OPTFRAME_DEFAULT_ADS>
 class ComponentAction: public Action<R, ADS>
 {
 public:
@@ -172,7 +172,7 @@ public:
 
 		if(!comp)
 		{
-			cout << "ComponentAction::doCast error: NULL component '" << component << " " << id << "'" << endl;
+			cout << "ComponentAction::doCast error: nullptr component '" << component << " " << id << "'" << endl;
 			return false;
 		}
 
@@ -188,7 +188,7 @@ public:
 		Component* final = (Component*) comp;
 
 		// remove old component from factory
-		hf.components[component].at(id) = NULL;
+		hf.components[component].at(id) = nullptr;
 
 		// add new component
 		Scanner scanner(variable);
