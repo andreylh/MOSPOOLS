@@ -6,7 +6,7 @@
 #include <math.h>
 #include <iostream>
 //#include "./readParetoSets.hpp"
-#include "./OptFrame/Loader.hpp"
+#include "OptFrame/Util/RandGenMersenneTwister.hpp"
 #include "MOSPOOLS.hpp"
 
 using namespace std;
