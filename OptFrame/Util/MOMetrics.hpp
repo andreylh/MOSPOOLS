@@ -168,9 +168,10 @@ public:
 			v_e.push_back(paretoEval);
 		}
 
-		MultiEvaluator<int> mev(v_e);
+		//TODO be deleted
+		MultiEvaluator<int>* mev = new MultiEvaluator<int>(v_e);
 
-		pMan = new paretoManager<int>(mev);
+		pMan = new paretoManager<int>(*mev);
 	}
 
 	File* createFile(string filename)
@@ -215,10 +216,11 @@ public:
 	void addWithEmptySol(Pareto<int>& pAux, ParetoFitness ind)
 	{
 		MultiEvaluation mev(ind);
-		int a = -1;
-		Solution<int>* emptySol = new Solution<int>(a);
+		int randomValueToSolInitialization = -1;
+		Solution<int> emptySol(randomValueToSolInitialization);
+		vector<MultiEvaluation*> vPF = pAux.getParetoFront();
 
-		pMan->addSolutionWithMEV(pAux, *emptySol, mev);
+		pMan->addSolutionWithMEV(pAux, emptySol, mev);
 	}
 
 	vector<ParetoFitness> unionSetsReturnEvaluations(vector<ParetoFitness> D1, vector<ParetoFitness> D2)
@@ -244,7 +246,6 @@ public:
 	vector<ParetoFitness> createParetoSetAndReturnEvaluations(vector<ParetoFitness> popParetoFitness)
 	{
 		Pareto<int> ref = createParetoSetFromEvaluations(popParetoFitness);
-
 		return getParetoEvaluations(ref,ref.size());
 	}
 

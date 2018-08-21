@@ -607,7 +607,6 @@ public:
 
 			if (domWeak.dominates(popIndFitness, candidateMev))
 				return false;
-
 			if (dom.dominates(candidateMev, popIndFitness))
 			{
 				p.erase(ind);
@@ -615,6 +614,7 @@ public:
 			}
 
 		}
+
 		if (added)
 			p.add_indWithMev(candidate, candidateMev);
 

@@ -9,12 +9,15 @@ CCLNFLAGS = -L$(CPLEXDIR)/lib/x86-64_linux/static_pic -DIL_STD -lilocplex -lcple
 CCINCFLAG = -I$(CPLEXDIR)/include -I$(CONCERTDIR)/include 
 
 uavrouting:
-	g++ ./mainCORS_UAVRouting.cpp ./SPOOLStructSmartStorage.cpp ./OptFrame/Scanner++/Scanner.cpp $(CCLNFLAGS) $(CCINCFLAG) --std=c++1z -O3 -o main
+	g++ ./mainCORS_UAVRouting.cpp ./OptFrame/Scanner++/Scanner.cpp $(CCLNFLAGS) $(CCINCFLAG) --std=c++1z -O3 -o main
 
 greenScheduling:
 	g++ ./mainGreen.cpp ./OptFrame/Scanner++/Scanner.cpp $(CCLNFLAGS) $(CCINCFLAG) --std=c++1z -O3 -o main
+
+smartstorage:
+	g++ ./mainxxxxxg.cpp ./SPOOLStructSmartStorage.cpp ./OptFrame/Scanner++/Scanner.cpp $(CCLNFLAGS) $(CCINCFLAG) --std=c++1z -O3 -o main
 	
 	
 clean:
-	#make clean -C ./Examples/
+	make clean
 	rm -f mainOptFrame

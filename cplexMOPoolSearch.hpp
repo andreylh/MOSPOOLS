@@ -77,6 +77,7 @@ public:
 
 	vector<ParetoFitness> getParetoSet()
 	{
+		//Reset pareto set and get if from current obj values
 		updatedParetoSet();
 		return paretoSET;
 	}
@@ -111,12 +112,13 @@ public:
 	}
 
 	virtual void exportParetoFrontValues(string filename, int nMILPProblems, int tLim, int nOptObj, double tNow){
+		stringstream ss;
+		ss << "./ResultadosFronteiras/" << filename << "NExec" << nMILPProblems << "TLimm" << tLim; // << "-bestMIPStart";
+		cout << "Writing PF at file: " << ss.str() << "..." << endl;
+		cout << "WARNING: Make sure that this aforementioned folder exists!" << endl;
+		FILE* fFronteiraPareto = fopen(ss.str().c_str(), "w");
 
 		int nParetoInd = paretoSET.size();
-		stringstream ss;
-		ss << "./ResultadosFronteiras/" << filename << "NExec" << nMILPProblems << "TLim" << tLim; // << "-bestMIPStart";
-		cout << "Writing PF at file: " << ss.str() << "..." << endl;
-		FILE* fFronteiraPareto = fopen(ss.str().c_str(), "w");
 		for (int nS = 0; nS < nParetoInd; nS++)
 		{
 			for (int nE = 0; nE < nOptObj; nE++)
@@ -159,11 +161,11 @@ public:
 
 		cout << "Number of objectives functions: " << nOptObj << endl;
 
-		vector<vector<double> > paretoSET;
+
 
 		int nMILPProblems = vMILPCoefs.size();
 		cout << "nMILPProblems = " << nMILPProblems << endl;
-
+		vector<ParetoFitness> paretoSETEvaluationsOnly;
 		IloEnv env;
 		try
 		{
@@ -326,7 +328,8 @@ public:
 			//=========================================================================================
 
 			int nObtainedSolutions = spoolStruct.getPopSize();
-			cout << "Total time spent: " << tTotal.now() << endl;
+			double timeeSpent = tTotal.now();
+			cout << "Total time spent: " << timeeSpent << endl;
 			cout << "Size of the obtained population:" << nObtainedSolutions << endl;
 
 			if (nObtainedSolutions > 0)
@@ -334,13 +337,11 @@ public:
 				cout << "Printing obtained population of solutions with size: " << nObtainedSolutions << endl;
 				cout << spoolStruct.getPopObjValues() << endl;
 
-				paretoSET = spoolStruct.getParetoSet();
-				double nParetoInd = paretoSET.size();
+				paretoSETEvaluationsOnly = spoolStruct.getParetoSet();
+				cout << "Printing Pareto Front of size: " << paretoSETEvaluationsOnly.size() << endl;
+				cout << paretoSETEvaluationsOnly << endl;
 
-				cout << "Printing Pareto Front of size: " << paretoSET.size() << endl;
-				cout << paretoSET << endl;
-
-				spoolStruct.exportParetoFrontValues(filename,nMILPProblems,tLim,nOptObj,tTotal.now());
+				spoolStruct.exportParetoFrontValues(filename,nMILPProblems,tLim,nOptObj,timeeSpent);
 			}
 			else
 			{
@@ -369,7 +370,7 @@ public:
 		env.end();
 		cout << "MO Pool Search finished com sucesso!" << endl;
 		cout << "===================================== \n" << endl;
-		return paretoSET;
+		return paretoSETEvaluationsOnly;
 	}
 
 };

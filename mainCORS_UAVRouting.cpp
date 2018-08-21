@@ -86,7 +86,8 @@ int main(int argc, char **argv)
 				"3 - int - solver time limit \n"
 				"2 - bool - Mip start (optional) - Default false \n"
 				"4 - int - maxTriesForFirstFeasible (optional) - Default 1 \n"
-				"5 - int NIntervals (optional) - Default 1 - other set values by hand at code \n" << endl;
+				"5 - int NIntervals (optional) - Default 1 - other set values by hand at code \n" <<
+				"Example: uav/lowerLayerT6 10 1 1 1 \n" << endl;
 
 		exit(1);
 	}
@@ -123,34 +124,34 @@ int main(int argc, char **argv)
 	//================================
 	//Generating objective functions weights with pre-defined vector of lambda values
 	vector<vector<double> > vPossibleCoefs(nOptObj);
-	vPossibleCoefs[0] =
-	{	1, 10};
-	vPossibleCoefs[1] =
-	{	0.1,1};
-	vPossibleCoefs[2] =
-	{	1, 10};
-	vPossibleCoefs[3] =
-	{	1};
-	vPossibleCoefs[4] =
-	{	0.01, 0.1};
-	vPossibleCoefs[5] =
-	{	1, 10};
-	vPossibleCoefs[6] =
-	{	1, 10};
 //	vPossibleCoefs[0] =
-//	{	1};
+//	{	1, 10};
 //	vPossibleCoefs[1] =
-//	{	0.1};
+//	{	0.1,1};
 //	vPossibleCoefs[2] =
-//	{	1};
+//	{	1, 10};
 //	vPossibleCoefs[3] =
 //	{	1};
 //	vPossibleCoefs[4] =
-//	{	0.01,};
+//	{	0.01, 0.1};
 //	vPossibleCoefs[5] =
-//	{	1};
+//	{	1, 10};
 //	vPossibleCoefs[6] =
-//	{	1};
+//	{	1, 10};
+	vPossibleCoefs[0] =
+	{	1};
+	vPossibleCoefs[1] =
+	{	0.1};
+	vPossibleCoefs[2] =
+	{	1};
+	vPossibleCoefs[3] =
+	{	1};
+	vPossibleCoefs[4] =
+	{	0.01,};
+	vPossibleCoefs[5] =
+	{	1};
+	vPossibleCoefs[6] =
+	{	1};
 	//================================
 
 	vector<double> referencePointsHV =
