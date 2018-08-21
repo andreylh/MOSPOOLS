@@ -29,6 +29,14 @@ Convert to LP:
 Include libraries paths `/opt/ibm/ILOG/CPLEX_Studio$Version/concert/include` and
 `/opt/ibm/ILOG/CPLEX_Studio$Version/cplex/include` to `C/C++ General -> Paths and Symbols -> GNU C++ (Includes)`
 
+### Hypervolume calculus
+
+The code provided by [http://lopez-ibanez.eu/hypervolume](http://lopez-ibanez.eu/hypervolume).
+
+In this sense, we would like to thanks:
+
+* Carlos M. Fonseca, Luís Paquete, and Manuel López-Ibáñez. An improved dimension - sweep algorithm for the hypervolume indicator. In Proceedings of the 2006 Congress on Evolutionary Computation (CEC'06), pages 1157–1163. IEEE Press, Piscataway, NJ, July 2006.
+
 ## Current maintainers
 
 [Vitor Nazário Coelho](https://github.com/vncoelho) and [LucianoCota](https://github.com/lucianocota)
