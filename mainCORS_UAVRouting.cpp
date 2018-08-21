@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <iostream>
-#include "./cplexMOPoolSearch.hpp"
-#include "./readParetoSets.hpp"
+//#include "./readParetoSets.hpp"
 #include "./OptFrame/Loader.hpp"
+#include "MOSPOOLS.hpp"
 
 using namespace std;
 using namespace optframe;
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 	MOMETRICS<int> moMetrics(nOptObj);
 	SPOOLStruct spoolStructSmartStorage(moMetrics, referencePointsHV, utopicSol);
 	cplexMOPoolSearch mModel(rg, spoolStructSmartStorage);
-	readParetoSets rPS(nOptObj, moMetrics);
+	//readParetoSets rPS(nOptObj, moMetrics);
 	vector<string> vInstances =
 	{ "lowerLayerT6NExec64TLim10", "lowerLayerT6NExec64TLim20", "lowerLayerT6NExec64TLim30", "lowerLayerT6NExec64TLim40",
 			"lowerLayerT7NExec64TLim10", "lowerLayerT7NExec64TLim20", "lowerLayerT7NExec64TLim30", "lowerLayerT7NExec64TLim40",

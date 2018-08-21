@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <iostream>
-#include "./cplexMOPoolSearch.hpp"
 #include "./readParetoSets.hpp"
 #include "./OptFrame/Loader.hpp"
 #include "./OptFrame/RandGen.hpp"
+#include "MOSPOOLS.hpp"
 
 using namespace std;
 using namespace optframe;

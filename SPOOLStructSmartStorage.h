@@ -1,7 +1,7 @@
 #ifndef SPOOLStructSmartStorage_H
 #define SPOOLStructSmartStorage_H
 
-#include "./cplexMOPoolSearch.hpp"
+#include "MOSPOOLS.hpp"
 #include "OptFrame/MultiObjSearch.hpp"
 
 class SPOOLStructSmartStorage: public SPOOLStruct

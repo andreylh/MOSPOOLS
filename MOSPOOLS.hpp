@@ -1,12 +1,5 @@
-/*
- * OptimalLinearRegression.hpp
- *
- *  Created on: 26/10/2014
- *      Author: vitor
- */
-
-#ifndef CPLEXMOPOOLSEARCH_HPP_
-#define CPLEXMOPOOLSEARCH_HPP_
+#ifndef MOSPOOLS_HPP_
+#define MOSPOOLS_HPP_
 
 #include <ilcplex/ilocplex.h>
 #include <ilcplex/cplexx.h>
@@ -421,4 +414,4 @@ public:
 
 };
 
-#endif /* CPLEXMOPOOLSEARCH_HPP_ */
+#endif /* MOSPOOLS_HPP_ */
