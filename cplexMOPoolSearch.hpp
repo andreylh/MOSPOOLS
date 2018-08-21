@@ -368,9 +368,55 @@ public:
 		}
 
 		env.end();
-		cout << "MO Pool Search finished com sucesso!" << endl;
+		cout << "MO Smart Pool Search finished com sucesso!" << endl;
 		cout << "===================================== \n" << endl;
 		return paretoSETEvaluationsOnly;
+	}
+
+	//Function for filling milp "combinations" with available object function values at "values"
+	void fillVectorWithAllCombinations(vector<vector<double> >& values, vector<vector<double> >& combinations)
+	{
+		vector<int> vIndex(values.size(), 0);
+		bool exitWhile = true;
+		do
+		{
+			int nObj = values.size();
+
+			for (int i = 0; i < values[0].size(); i++)
+			{
+				vector<double> coef(nObj);
+				for (int o = 0; o < nObj; o++)
+					coef[o] = values[o][vIndex[o]];
+
+				combinations.push_back(coef);
+				vIndex[0]++;
+			}
+			vIndex[0] = 0;
+
+	//		cout << combinations << endl;
+	//		cout << index << endl;
+	//		getchar();
+
+			for (int o = 1; o < nObj; o++)
+			{
+
+				if (vIndex[o] < (values[o].size() - 1))
+				{
+					vIndex[o]++;
+					o = nObj;
+					break;
+				}
+				else
+				{
+					vIndex[o] = 0;
+
+					if (o == (nObj - 1))
+						exitWhile = false;
+				}
+			}
+
+		} while (exitWhile);
+
 	}
 
 };

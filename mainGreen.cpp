@@ -13,67 +13,6 @@
 using namespace std;
 using namespace optframe;
 
-vector<string> generateInstanceNames(string filename, vector<int> vNMilp, vector<int> vTlim)
-{
-	stringstream ss;
-	vector<string> vInstances;
-
-	//Temp vector discretization T for the instances of the UAV routing
-//	vector<int> vTMax;
-
-	for (int n = 0; n < vNMilp.size(); n++)
-		for (int tLim = 0; tLim < vTlim.size(); tLim++)
-		{
-			ss << "./ResultadosFronteiras/" << filename << "NExec" << n << "TLim" << tLim; // << "-bestMIPStart";
-			vInstances.push_back(ss.str());
-		}
-
-	return vInstances;
-}
-void fillVectorWithAllCombinations(vector<vector<double> >& values, vector<vector<double> >& combinations)
-{
-	vector<int> vIndex(values.size(), 0);
-	bool exitWhile = true;
-	do
-	{
-		int nObj = values.size();
-
-		for (int i = 0; i < values[0].size(); i++)
-		{
-			vector<double> coef(nObj);
-			for (int o = 0; o < nObj; o++)
-				coef[o] = values[o][vIndex[o]];
-
-			combinations.push_back(coef);
-			vIndex[0]++;
-		}
-		vIndex[0] = 0;
-
-//		cout << combinations << endl;
-//		cout << index << endl;
-//		getchar();
-
-		for (int o = 1; o < nObj; o++)
-		{
-
-			if (vIndex[o] < (values[o].size() - 1))
-			{
-				vIndex[o]++;
-				o = nObj;
-				break;
-			}
-			else
-			{
-				vIndex[o] = 0;
-
-				if (o == (nObj - 1))
-					exitWhile = false;
-			}
-		}
-
-	} while (exitWhile);
-
-}
 
 int main(int argc, char **argv)
 {
@@ -193,7 +132,7 @@ int main(int argc, char **argv)
 //	getchar();
 
 	vector<vector<double> > vMILPCoefs;
-	fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
+	mModel.fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
 	cout << "possible combination are:\n" << vMILPCoefs << endl;
 	int maxTriesWithTLimUntilFirstFeasible = argvMaxTries; //max number of times it will optimize with tLim until finding the First Feasible
 	maxTriesWithTLimUntilFirstFeasible = 30;

@@ -29,50 +29,7 @@ vector<string> generateInstanceNames(string filename, vector<int> vNMilp, vector
 
 	return vInstances;
 }
-void fillVectorWithAllCombinations(vector<vector<double> >& values, vector<vector<double> >& combinations)
-{
-	vector<int> vIndex(values.size(), 0);
-	bool exitWhile = true;
-	do
-	{
-		int nObj = values.size();
 
-		for (int i = 0; i < values[0].size(); i++)
-		{
-			vector<double> coef(nObj);
-			for (int o = 0; o < nObj; o++)
-				coef[o] = values[o][vIndex[o]];
-
-			combinations.push_back(coef);
-			vIndex[0]++;
-		}
-		vIndex[0] = 0;
-
-//		cout << combinations << endl;
-//		cout << index << endl;
-//		getchar();
-
-		for (int o = 1; o < nObj; o++)
-		{
-
-			if (vIndex[o] < (values[o].size() - 1))
-			{
-				vIndex[o]++;
-				o = nObj;
-				break;
-			}
-			else
-			{
-				vIndex[o] = 0;
-
-				if (o == (nObj - 1))
-					exitWhile = false;
-			}
-		}
-
-	} while (exitWhile);
-
-}
 
 int main(int argc, char **argv)
 {
@@ -171,17 +128,18 @@ int main(int argc, char **argv)
 	for (int i = 0; i < vInstances.size(); i++)
 	{
 		stringstream tempss;
-		tempss << "./ResultadosFronteiras/CORS/" << vInstances[i];
+		tempss << "./ResultadosFronteiras/uav/" << vInstances[i];
 		vInstances[i] = tempss.str();
 	}
 //	vInstances = generateInstanceNames();
 
+	//method for processing results
 //	rPS.exec(vInstances, utopicSol, referencePointsHV);
 //	cout << "Read Pareto finished with sucess!" << endl;
 //	getchar();
 
 	vector<vector<double> > vMILPCoefs;
-	fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
+	mModel.fillVectorWithAllCombinations(vPossibleCoefs, vMILPCoefs);
 	cout << "possible combination are:\n" << vMILPCoefs << endl;
 	int maxTriesWithTLimUntilFirstFeasible = argvMaxTries; //max number of times it will optimize with tLim until finding the First Feasible
 	maxTriesWithTLimUntilFirstFeasible = 30;
